@@ -54,8 +54,8 @@ function isRateLimited(address: string, now: number) {
   return false;
 }
 
-function getClientAddress() {
-  const requestHeaders = headers();
+async function getClientAddress() {
+  const requestHeaders = await headers();
   const forwardedFor = requestHeaders.get('x-forwarded-for')?.split(',')[0]?.trim();
   return requestHeaders.get('x-real-ip')?.trim() || forwardedFor || 'unknown';
 }
@@ -64,7 +64,7 @@ export async function submitRfq(
   _previousState: RfqActionState,
   formData: FormData,
 ): Promise<RfqActionState> {
-  if (isRateLimited(getClientAddress(), Date.now())) return failure;
+  if (isRateLimited(await getClientAddress(), Date.now())) return failure;
 
   // Honeypot: respond generically without forwarding a bot submission.
   if (String(formData.get('companyWebsite') ?? '').trim()) return failure;

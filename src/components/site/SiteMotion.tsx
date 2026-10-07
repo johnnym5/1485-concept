@@ -5,13 +5,9 @@ import { usePathname, useRouter } from 'next/navigation';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
-function motionDuration(desktop: number, mobile: number) {
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return 0.01;
-  return window.matchMedia('(max-width: 767px)').matches ? mobile : desktop;
-}
-
 export function SiteMotion({ children }: { children: React.ReactNode }) {
   const panelRef = useRef<HTMLDivElement>(null);
+  const routePageRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const router = useRouter();
   const previousPathRef = useRef(pathname);
@@ -48,13 +44,16 @@ export function SiteMotion({ children }: { children: React.ReactNode }) {
     const context = gsap.context(() => {}, panel);
 
     const releasePanel = () => {
+      gsap.killTweensOf([panel, routePageRef.current]);
       panel.style.pointerEvents = 'none';
-      gsap.set(panel, { xPercent: -100 });
+      gsap.set(panel, { autoAlpha: 0, backdropFilter: 'blur(0px)', WebkitBackdropFilter: 'blur(0px)' });
+      if (routePageRef.current) gsap.set(routePageRef.current, { autoAlpha: 1, scale: 1, filter: 'blur(0px)', clearProps: 'filter,transform,willChange' });
       busyRef.current = false;
       navigationPendingRef.current = false;
       delete document.documentElement.dataset.siteTransition;
       if (fallbackTimerRef.current !== null) window.clearTimeout(fallbackTimerRef.current);
       fallbackTimerRef.current = null;
+      window.dispatchEvent(new Event('site-route-revealed'));
     };
 
     const markHistoryTransition = () => {
@@ -82,18 +81,32 @@ export function SiteMotion({ children }: { children: React.ReactNode }) {
       navigationPendingRef.current = true;
       markHistoryTransition();
       panel.style.pointerEvents = 'auto';
-      const duration = motionDuration(0.62, 0.42);
+      gsap.set(panel, { autoAlpha: 0, backdropFilter: 'blur(0px)', WebkitBackdropFilter: 'blur(0px)' });
+      const routePage = routePageRef.current;
+      const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const duration = reduceMotion ? 0.01 : window.matchMedia('(max-width: 767px)').matches ? 0.42 : 0.58;
 
       context.add(() => {
-        gsap.to(panel, {
-          xPercent: 0,
-          duration,
-          ease: 'power2.inOut',
+        const exitTimeline = gsap.timeline({
           onComplete: () => {
             router.push(`${destination.pathname}${destination.search}${destination.hash}`);
-            fallbackTimerRef.current = window.setTimeout(releasePanel, 5000);
+            fallbackTimerRef.current = window.setTimeout(releasePanel, 2400);
           },
         });
+        if (routePage) exitTimeline.to(routePage, {
+          autoAlpha: 0,
+          scale: reduceMotion ? 1 : 0.985,
+          filter: reduceMotion ? 'blur(0px)' : 'blur(12px)',
+          duration,
+          ease: 'power2.in',
+        }, 0);
+        exitTimeline.to(panel, {
+          autoAlpha: 1,
+          backdropFilter: reduceMotion ? 'blur(0px)' : 'blur(14px)',
+          WebkitBackdropFilter: reduceMotion ? 'blur(0px)' : 'blur(14px)',
+          duration,
+          ease: 'power2.inOut',
+        }, 0);
       });
     };
 
@@ -114,8 +127,10 @@ export function SiteMotion({ children }: { children: React.ReactNode }) {
     if (!panel) return;
     const routeContext = gsap.context(() => {}, panel);
     const finishIncomingTransition = () => {
+      gsap.killTweensOf(panel);
       panel.style.pointerEvents = 'none';
-      gsap.set(panel, { xPercent: -100 });
+      gsap.set(panel, { autoAlpha: 0, backdropFilter: 'blur(0px)', WebkitBackdropFilter: 'blur(0px)' });
+      if (routePageRef.current) gsap.set(routePageRef.current, { autoAlpha: 1, scale: 1, filter: 'blur(0px)', clearProps: 'filter,transform,willChange' });
       busyRef.current = false;
       delete document.documentElement.dataset.siteTransition;
       if (fallbackTimerRef.current !== null) window.clearTimeout(fallbackTimerRef.current);
@@ -123,50 +138,59 @@ export function SiteMotion({ children }: { children: React.ReactNode }) {
       window.dispatchEvent(new Event('site-route-revealed'));
     };
 
+    const setIncomingTransitionFallback = () => {
+      if (fallbackTimerRef.current !== null) window.clearTimeout(fallbackTimerRef.current);
+      fallbackTimerRef.current = window.setTimeout(finishIncomingTransition, 2600);
+    };
+
+    const animateIncomingPage = () => {
+      const routePage = routePageRef.current;
+      const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const duration = reduceMotion ? 0.01 : window.matchMedia('(max-width: 767px)').matches ? 0.72 : 0.9;
+      if (routePage) {
+        gsap.fromTo(routePage,
+          { autoAlpha: 0, scale: reduceMotion ? 1 : 1.025, filter: reduceMotion ? 'blur(0px)' : 'blur(12px)' },
+          { autoAlpha: 1, scale: 1, filter: 'blur(0px)', duration, ease: 'power2.out', clearProps: 'filter,transform,willChange' },
+        );
+      }
+      gsap.to(panel, {
+        autoAlpha: 0,
+        backdropFilter: 'blur(0px)',
+        WebkitBackdropFilter: 'blur(0px)',
+        duration,
+        ease: 'power2.out',
+        onComplete: finishIncomingTransition,
+      });
+    };
+
     if (navigationPendingRef.current) {
       navigationPendingRef.current = false;
-      const duration = motionDuration(0.62, 0.42);
       panel.style.pointerEvents = 'auto';
-      routeContext.add(() => {
-        gsap.to(panel, {
-          xPercent: 100,
-          duration,
-          ease: 'power2.inOut',
-          onComplete: finishIncomingTransition,
-        });
-      });
+      routeContext.add(animateIncomingPage);
+      setIncomingTransitionFallback();
       return () => routeContext.revert();
     }
 
-    // Back and forward navigation commits before popstate can be delayed; cover in
-    // the layout phase so the incoming route is wiped in before the browser paints.
+    // Back and forward navigation can commit before popstate is handled. Put the
+    // soft overlay over the incoming route before paint, then reveal it smoothly.
     document.documentElement.dataset.siteTransition = 'covered';
     panel.style.pointerEvents = 'auto';
     gsap.killTweensOf(panel);
-    gsap.set(panel, { xPercent: 0 });
-    const duration = motionDuration(0.62, 0.42);
-    routeContext.add(() => {
-      gsap.to(panel, {
-        xPercent: 100,
-        duration,
-        ease: 'power2.inOut',
-        onComplete: finishIncomingTransition,
-      });
-    });
+    gsap.set(panel, { autoAlpha: 1, backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)' });
+    routeContext.add(animateIncomingPage);
+    setIncomingTransitionFallback();
     return () => routeContext.revert();
   }, [pathname]);
 
   return (
     <>
-      {children}
+      <div ref={routePageRef} data-site-route>{children}</div>
       <div
         ref={panelRef}
         aria-hidden="true"
-        className="pointer-events-none fixed inset-0 z-[200] -translate-x-full bg-[#080808]"
-        style={{ transform: 'translate3d(-100%, 0, 0)' }}
-      >
-        <span className="absolute inset-y-0 right-0 w-px bg-[#C5A059]/80 shadow-[0_0_18px_rgba(197,160,89,0.3)]" />
-      </div>
+        className="pointer-events-none fixed inset-0 z-[200] bg-[#080808]/20 opacity-0"
+        style={{ visibility: 'hidden', backdropFilter: 'blur(0px)', WebkitBackdropFilter: 'blur(0px)' }}
+      />
     </>
   );
 }
@@ -216,16 +240,18 @@ export function PageMotion({ page, children }: { page: string; children: React.R
             filter: 'blur(0px)',
             clearProps: 'willChange',
           });
+          gsap.set(root, { autoAlpha: 1, x: 0, y: 0, scale: 1, filter: 'blur(0px)' });
+          return;
         }
         gsap.fromTo(root,
-          { autoAlpha: 0, y: 34, filter: 'blur(10px)' },
+          { autoAlpha: 0, scale: 1.025, filter: 'blur(10px)' },
           {
             autoAlpha: 1,
-            y: 0,
+            scale: 1,
             filter: 'blur(0px)',
             duration: window.matchMedia('(max-width: 767px)').matches ? 0.78 : 1,
             ease: 'power2.out',
-            clearProps: 'filter,willChange',
+            clearProps: 'filter,transform,willChange',
           },
         );
       };
@@ -233,7 +259,9 @@ export function PageMotion({ page, children }: { page: string; children: React.R
       let routeRevealFallback: number | null = null;
       let waitingForRouteWipe = false;
       if (waitForRouteTransition) {
-        gsap.set(root, { autoAlpha: 0, y: 22, filter: 'blur(7px)' });
+        // Keep the incoming page painted beneath the transition overlay. If navigation or
+        // the reveal event is interrupted, the destination must not remain black.
+        gsap.set(root, { autoAlpha: 1, y: 0, filter: 'blur(0px)' });
         waitingForRouteWipe = true;
         const onRouteRevealed = () => {
           if (!waitingForRouteWipe) return;
@@ -242,7 +270,7 @@ export function PageMotion({ page, children }: { page: string; children: React.R
           context.add(() => enterPage(true));
         };
         window.addEventListener('site-route-revealed', onRouteRevealed);
-        routeRevealFallback = window.setTimeout(onRouteRevealed, 2200);
+        routeRevealFallback = window.setTimeout(onRouteRevealed, 1400);
         routeRevealCleanup = () => {
           waitingForRouteWipe = false;
           window.removeEventListener('site-route-revealed', onRouteRevealed);

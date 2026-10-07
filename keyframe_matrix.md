@@ -1,8 +1,8 @@
 {
   "engineConfig": {
-    "totalFrames": 190,
+    "totalFrames": 201,
     "preloadBuffer": 30,
-    "basePath": "/sequence/frame_",
+    "basePath": "/slower-sequence-webp/frame_",
     "extension": ".webp"
   },
   "phases": [
