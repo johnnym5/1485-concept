@@ -1,0 +1,279 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@font-face {
+  font-family: "Cormorant Garamond";
+  src: url("/fonts/cormorant-garamond-latin-400.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Cormorant Garamond";
+  src: url("/fonts/cormorant-garamond-latin-500.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Manrope";
+  src: url("/fonts/manrope-latin-400.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Manrope";
+  src: url("/fonts/manrope-latin-500.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Manrope";
+  src: url("/fonts/manrope-latin-600.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
+  overflow-x: clip;
+}
+
+body {
+  margin: 0;
+  background: #080808;
+  color: #f4f4f0;
+  font-family: "Manrope", "Segoe UI", sans-serif;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+.font-editorial {
+  font-family: "Cormorant Garamond", "Baskerville", "Palatino Linotype", Georgia, serif;
+}
+
+.frosted-copy-panel {
+  position: relative;
+  isolation: isolate;
+  border-color: rgb(244 244 240 / 18%);
+  background:
+    linear-gradient(138deg, rgb(255 255 255 / 15%) 0%, rgb(255 255 255 / 4%) 18%, transparent 43%, rgb(3 13 22 / 24%) 100%),
+    rgb(8 19 29 / 52%);
+  -webkit-backdrop-filter: blur(24px) saturate(145%) brightness(82%);
+  backdrop-filter: blur(24px) saturate(145%) brightness(82%);
+  box-shadow: 0 24px 70px rgb(0 0 0 / 48%), inset 0 1px rgb(255 255 255 / 18%), inset 0 -1px rgb(0 0 0 / 24%);
+}
+
+.frosted-glass-card {
+  position: relative;
+  isolation: isolate;
+  border-color: rgb(197 160 89 / 42%);
+  background:
+    linear-gradient(145deg, rgb(255 255 255 / 11%) 0%, rgb(255 255 255 / 2%) 22%, transparent 48%, rgb(1 9 16 / 30%) 100%),
+    rgb(7 20 31 / 76%);
+  -webkit-backdrop-filter: blur(28px) saturate(150%) brightness(78%);
+  backdrop-filter: blur(28px) saturate(150%) brightness(78%);
+  box-shadow: 0 32px 90px rgb(0 0 0 / 68%), inset 0 1px rgb(255 255 255 / 16%), inset 1px 0 rgb(255 255 255 / 6%), inset 0 -1px rgb(0 0 0 / 35%);
+  transition: border-color 700ms ease-out, box-shadow 700ms ease-out, background-color 700ms ease-out;
+}
+
+.frosted-glass-card:hover,
+.frosted-glass-card:focus-within {
+  border-color: rgb(197 160 89 / 72%);
+  box-shadow: 0 30px 100px rgb(0 0 0 / 82%), 0 0 32px rgb(197 160 89 / 12%), inset 0 1px rgb(255 255 255 / 10%);
+}
+
+.frosted-copy,
+.frosted-copy * {
+  text-shadow: 0 2px 14px rgb(0 0 0 / 96%), 0 1px 2px rgb(0 0 0 / 80%), 0 0 1px rgb(255 255 255 / 25%);
+}
+
+.frosted-site-header {
+  position: relative;
+  isolation: isolate;
+  background:
+    linear-gradient(135deg, rgb(255 255 255 / 8%), transparent 48%),
+    rgb(4 16 26 / 82%);
+  -webkit-backdrop-filter: blur(24px) saturate(145%);
+  backdrop-filter: blur(24px) saturate(145%);
+  box-shadow: 0 14px 44px rgb(0 0 0 / 36%), inset 0 1px rgb(255 255 255 / 12%);
+}
+
+@media (min-width: 768px) {
+  .frosted-site-header {
+    border-color: transparent;
+    background: transparent;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    box-shadow: none;
+  }
+}
+
+.mobile-menu-line {
+  position: absolute;
+  top: calc(50% - 5px);
+  left: 50%;
+  width: 17px;
+  height: 1px;
+  border-radius: 1px;
+  background: currentColor;
+  transform: translate(-50%, -50%);
+  transition: top 320ms ease, transform 320ms ease, opacity 180ms ease;
+}
+
+.mobile-menu-line--middle {
+  top: 50%;
+}
+
+.mobile-menu-line--bottom {
+  top: calc(50% + 5px);
+}
+
+.mobile-menu-toggle[aria-expanded="true"] .mobile-menu-line--top {
+  top: 50%;
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.mobile-menu-toggle[aria-expanded="true"] .mobile-menu-line--middle {
+  opacity: 0;
+  transform: translate(-50%, -50%) scaleX(0.35);
+}
+
+.mobile-menu-toggle[aria-expanded="true"] .mobile-menu-line--bottom {
+  top: 50%;
+  transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mobile-menu-line {
+    transition-duration: 100ms;
+  }
+}
+
+.frosted-menu {
+  background:
+    linear-gradient(145deg, rgb(255 255 255 / 9%), transparent 42%),
+    rgb(4 16 26 / 94%);
+  -webkit-backdrop-filter: blur(28px) saturate(150%);
+  backdrop-filter: blur(28px) saturate(150%);
+}
+
+.rfq-field-pair {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+@media (min-width: 390px) and (max-width: 639px) {
+  .rfq-field-pair {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 0.5rem;
+    row-gap: 0.375rem;
+  }
+}
+
+@media (min-width: 640px) {
+  .rfq-field-pair {
+    gap: 1.25rem;
+  }
+}
+
+.architectural-card {
+  border: 1px solid rgb(255 255 255 / 10%);
+  background:
+    linear-gradient(145deg, rgb(255 255 255 / 5%), transparent 36%),
+    rgb(11 11 11 / 88%);
+  box-shadow: 0 24px 56px rgb(0 0 0 / 36%), inset 0 1px rgb(255 255 255 / 7%);
+  transition: border-color 700ms ease-out, box-shadow 700ms ease-out, transform 700ms ease-out;
+}
+
+.architectural-card:hover {
+  border-color: rgb(197 160 89 / 32%);
+  box-shadow: 0 30px 64px rgb(0 0 0 / 48%), inset 0 1px rgb(255 255 255 / 9%);
+}
+
+.journey-progress {
+  width: 100%;
+  transform: scaleX(var(--journey-progress, 0));
+  transform-origin: left center;
+  will-change: transform;
+}
+
+.technical-label {
+  font-family: "Manrope", "Segoe UI", sans-serif;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.chapter-link,
+.quiet-interaction {
+  transition-duration: 700ms;
+  transition-timing-function: ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .frosted-glass-card,
+  .architectural-card,
+  .chapter-link,
+  .quiet-interaction {
+    transition-duration: 150ms;
+  }
+}
+
+::selection {
+  background: rgb(197 160 89 / 35%);
+  color: #f4f4f0;
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+button:focus-visible,
+a:focus-visible {
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+  }
+
+  .journey-section {
+    height: 650vh !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) and (min-width: 768px) {
+  .journey-section {
+    height: 540vh !important;
+  }
+}
