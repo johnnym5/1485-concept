@@ -1,9 +1,19 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import InteractiveCanvasEngine from './InteractiveCanvasEngine';
 
-export default function LoadingBuffer() {
+const ARCHITECTURE_VIDEO_PATH = '/sequence/architecture-scroll.mp4';
+const ARCHITECTURE_VIDEO_CACHE = '1485-architecture-video-v1';
+
+const loadingMessages = [
+  'Preparing the experience',
+  'Sorry this is taking a little longer than expected',
+  'We’re close — thanks for hanging in there',
+  'Finishing the final details',
+];
+
+export default function LoadingBuffer({ children }: { children: ReactNode }) {
   const [isLeaving, setIsLeaving] = useState(false);
   const [loaderVisible, setLoaderVisible] = useState(true);
   const [brandMode, setBrandMode] = useState<'video' | 'logo' | 'text'>('video');
@@ -11,14 +21,16 @@ export default function LoadingBuffer() {
   const [brandReady, setBrandReady] = useState(false);
   const [introModeResolved, setIntroModeResolved] = useState(false);
   const [experiencePrepared, setExperiencePrepared] = useState(false);
-  const [sequenceFrames, setSequenceFrames] = useState<HTMLImageElement[] | null>(null);
+  const [videoSource, setVideoSource] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
+  const [loadingMessageIndex, setLoadingMessageIndex] = useState(0);
   const loadingScreenRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const brandTimerRef = useRef<number | null>(null);
+  const messageIntervalRef = useRef<number | null>(null);
+  const videoObjectUrlRef = useRef<string | null>(null);
   const fallbackStartedRef = useRef(false);
   const brandPlaybackStartedRef = useRef(false);
-
   const finishBrandIntro = useCallback(() => {
     setBrandReady(true);
     try {
@@ -27,6 +39,8 @@ export default function LoadingBuffer() {
       // Storage can be unavailable in private or restricted browsing contexts.
     }
   }, []);
+
+  const onSceneReady = useCallback(() => setExperiencePrepared(true), []);
 
   const showLogoFallback = useCallback(() => {
     if (fallbackStartedRef.current) return;
@@ -39,72 +53,6 @@ export default function LoadingBuffer() {
 
   useEffect(() => {
     let cancelled = false;
-    const frameCacheName = '1485-experience-frames-v3';
-    const framePaths = Array.from({ length: 201 }, (_, index) => `/slower-sequence-webp/frame_${String(index).padStart(4, '0')}.webp`);
-    const loadFrameFallback = async () => {
-      const frames: HTMLImageElement[] = new Array(framePaths.length);
-      let completed = 0;
-      const setLoadProgress = () => setProgress((current) => Math.max(current, Math.min(88, Math.round((completed / framePaths.length) * 88))));
-      const decodeFrame = async (path: string, response?: Response) => {
-        const image = new Image();
-        image.decoding = 'async';
-        if (response) image.src = URL.createObjectURL(await response.blob());
-        else image.src = path;
-        await image.decode();
-        if (response && image.src.startsWith('blob:')) URL.revokeObjectURL(image.src);
-        completed += 1;
-        setLoadProgress();
-        return image;
-      };
-
-      try {
-        if (!('caches' in window)) throw new Error('Cache storage unavailable');
-        const cache = await window.caches.open(frameCacheName);
-        const cachedFrames = await Promise.all(framePaths.map((path) => cache.match(path)));
-        for (let start = 0; start < framePaths.length; start += 8) {
-          const batch = framePaths.slice(start, start + 8);
-          await Promise.all(batch.map(async (path, offset) => {
-            const index = start + offset;
-            let response = cachedFrames[index];
-            if (!response) {
-              response = await fetch(path, { cache: 'force-cache' });
-              if (!response.ok) throw new Error(`Unable to load ${path}`);
-              await cache.put(path, response.clone());
-            }
-            frames[index] = await decodeFrame(path, response);
-          }));
-          if (cancelled) return;
-        }
-        if (cancelled) return;
-        setSequenceFrames(frames);
-        setExperiencePrepared(true);
-      } catch {
-        if (cancelled) return;
-        // Without Cache Storage, load and decode the image sequence directly.
-        try {
-          for (let start = 0; start < framePaths.length; start += 8) {
-            const batch = framePaths.slice(start, start + 8);
-            await Promise.all(batch.map(async (path, offset) => {
-              frames[start + offset] = await decodeFrame(path);
-            }));
-            if (cancelled) return;
-          }
-          setSequenceFrames(frames);
-        } catch {
-          // Reveal the page using whatever frames are available rather than leave
-          // the loading overlay stuck if one of the sequence images is missing.
-          const firstFrame = new Image();
-          firstFrame.src = '/slower-sequence-webp/frame_0000.webp';
-          try { await firstFrame.decode(); } catch { /* canvas has its own poster */ }
-          if (cancelled) return;
-          frames[0] = firstFrame;
-          setSequenceFrames(frames);
-        }
-        if (cancelled) return;
-        setExperiencePrepared(true);
-      }
-    };
-
     const prepareExperience = async () => {
       try {
         if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
@@ -112,29 +60,73 @@ export default function LoadingBuffer() {
           setExperiencePrepared(true);
           return;
         }
-        let sequenceIsCached = false;
+        let videoCache: Cache | null = null;
+        let cachedVideo: Response | undefined;
         if ('caches' in window) {
           try {
-            const cache = await window.caches.open(frameCacheName);
-            const cachedFrames = await Promise.all(framePaths.map((path) => cache.match(path)));
-            sequenceIsCached = cachedFrames.every(Boolean);
+            videoCache = await window.caches.open(ARCHITECTURE_VIDEO_CACHE);
+            cachedVideo = await videoCache.match(ARCHITECTURE_VIDEO_PATH);
           } catch {
-            // Continue with normal frame loading when Cache Storage is unavailable.
+            // Continue with the normal network request when Cache Storage is unavailable.
           }
         }
-        if (sequenceIsCached) {
+        if (cachedVideo) {
+          const objectUrl = URL.createObjectURL(await cachedVideo.blob());
+          if (cancelled) {
+            URL.revokeObjectURL(objectUrl);
+            return;
+          }
+          videoObjectUrlRef.current = objectUrl;
+          setVideoSource(objectUrl);
+          setProgress(88);
           fallbackStartedRef.current = true;
           setBrandMode('logo');
           brandTimerRef.current = window.setTimeout(finishBrandIntro, 760);
         } else {
           setIntroModeResolved(true);
+          const response = await fetch(ARCHITECTURE_VIDEO_PATH, { cache: 'force-cache' });
+          if (!response.ok) throw new Error('Unable to load the architectural video');
+          const totalBytes = Number(response.headers.get('content-length')) || 0;
+          const chunks: Uint8Array[] = [];
+          let receivedBytes = 0;
+          if (response.body) {
+            const reader = response.body.getReader();
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              if (!value) continue;
+              chunks.push(value);
+              receivedBytes += value.byteLength;
+              if (totalBytes > 0) {
+                const downloadProgress = Math.min(88, Math.round((receivedBytes / totalBytes) * 88));
+                setProgress((current) => Math.max(current, downloadProgress));
+              }
+            }
+          } else {
+            const buffer = await response.arrayBuffer();
+            chunks.push(new Uint8Array(buffer));
+            receivedBytes = buffer.byteLength;
+          }
+          const videoBlob = new Blob(chunks, { type: response.headers.get('content-type') || 'video/mp4' });
+          if (cancelled) return;
+          if (videoCache) {
+            const cachedResponse = new Response(videoBlob, { headers: { 'Content-Type': videoBlob.type } });
+            await videoCache.put(ARCHITECTURE_VIDEO_PATH, cachedResponse).catch(() => undefined);
+          }
+          const objectUrl = URL.createObjectURL(videoBlob);
+          videoObjectUrlRef.current = objectUrl;
+          setVideoSource(objectUrl);
+          setProgress(88);
         }
-        await loadFrameFallback();
       } catch {
         if (cancelled) return;
-        await loadFrameFallback();
+        // Let the media element try the public asset directly; the canvas has
+        // an on-demand WebP fallback if the video itself cannot be decoded.
+        setIntroModeResolved(true);
+        setVideoSource(ARCHITECTURE_VIDEO_PATH);
+        setProgress(88);
       } finally {
-        if (!cancelled) setIntroModeResolved(true);
+        if (!cancelled && window.matchMedia('(prefers-reduced-motion: reduce)').matches) setIntroModeResolved(true);
       }
     };
 
@@ -142,6 +134,7 @@ export default function LoadingBuffer() {
     return () => {
       cancelled = true;
       if (brandTimerRef.current !== null) window.clearTimeout(brandTimerRef.current);
+      if (videoObjectUrlRef.current !== null) URL.revokeObjectURL(videoObjectUrlRef.current);
     };
   }, [finishBrandIntro]);
 
@@ -163,6 +156,23 @@ export default function LoadingBuffer() {
       window.clearTimeout(removeLoader);
     };
   }, [brandReady, experiencePrepared]);
+
+  useEffect(() => {
+    if (!loaderVisible || isLeaving) return;
+    const showReassurance = window.setTimeout(() => {
+      setLoadingMessageIndex(1);
+      messageIntervalRef.current = window.setInterval(() => {
+        setLoadingMessageIndex((current) => (current + 1) % loadingMessages.length);
+      }, 3200);
+    }, 6500);
+    return () => {
+      window.clearTimeout(showReassurance);
+      if (messageIntervalRef.current !== null) {
+        window.clearInterval(messageIntervalRef.current);
+        messageIntervalRef.current = null;
+      }
+    };
+  }, [loaderVisible, isLeaving]);
 
   useEffect(() => {
     if (!introModeResolved || brandMode !== 'video' || videoStarted) return;
@@ -197,11 +207,13 @@ export default function LoadingBuffer() {
 
   return (
     <>
-      <InteractiveCanvasEngine initialFrames={sequenceFrames} />
+      <InteractiveCanvasEngine videoSource={videoSource} onSceneReady={onSceneReady}>
+        {children}
+      </InteractiveCanvasEngine>
       {loaderVisible && (
         <div
           ref={loadingScreenRef}
-          className={`fixed inset-0 z-[100] flex min-h-screen flex-col items-center justify-center gap-5 overflow-hidden bg-[#080808] px-8 transition-[opacity,transform] duration-[2500ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:duration-300 ${isLeaving ? 'pointer-events-none scale-[1.035] opacity-0' : 'scale-100 opacity-100'}`}
+          className={`fixed inset-0 z-[100] flex min-h-screen flex-col items-center justify-center gap-5 overflow-hidden bg-black px-8 transition-[opacity,transform] duration-[2500ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:duration-300 ${isLeaving ? 'pointer-events-none scale-[1.035] opacity-0' : 'scale-100 opacity-100'}`}
           role="status"
           aria-live="polite"
           aria-busy={!brandReady}
@@ -249,7 +261,9 @@ export default function LoadingBuffer() {
             )}
             <p className="font-sans text-xs uppercase tracking-[0.3em] text-[#C5A059] sm:text-sm">Precision Execution</p>
           </div>
-          <p className={`mt-3 text-[10px] uppercase tracking-[0.24em] text-white/55 transition-opacity duration-500 ${isLeaving ? 'opacity-0' : 'opacity-100'}`}>Preparing the experience</p>
+          <p key={loadingMessageIndex} className={`mt-3 min-h-4 text-center text-[10px] uppercase tracking-[0.2em] text-white/55 transition-opacity duration-500 ${isLeaving ? 'opacity-0' : 'animate-[loader-message-in_500ms_ease-out] opacity-100'}`}>
+            {loadingMessages[loadingMessageIndex]}
+          </p>
           <div className="mt-1 h-px w-full max-w-xs overflow-hidden bg-white/15">
             <div
               className="h-full bg-[#C5A059] transition-[width] duration-300 ease-out"

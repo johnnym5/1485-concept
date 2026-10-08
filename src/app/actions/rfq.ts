@@ -16,6 +16,7 @@ const rfqSchema = z.object({
   location: z.string().trim().min(2).max(120),
   scope: z.string().trim().min(10).max(4000),
   budget: z.enum(['under-50m', '50m-150m', '150m-500m', 'over-500m', 'not-sure']),
+  acceptTerms: z.literal('yes'),
 });
 
 const failure: RfqActionState = {
@@ -76,6 +77,7 @@ export async function submitRfq(
     location: formData.get('location'),
     scope: formData.get('scope'),
     budget: formData.get('budget'),
+    acceptTerms: formData.get('acceptTerms'),
   });
   if (!parsed.success) return failure;
 
@@ -110,6 +112,7 @@ export async function submitRfq(
         `Project type: ${parsed.data.projectType}`,
         `Location: ${parsed.data.location}`,
         `Estimated budget: ${parsed.data.budget}`,
+        `Website terms accepted: yes (${new Date().toISOString()})`,
         '',
         'Project scope:',
         parsed.data.scope,

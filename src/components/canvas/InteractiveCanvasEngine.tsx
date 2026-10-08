@@ -1,16 +1,18 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import TypographyLayer from '../overlay/TypographyLayer';
-import BlueprintFooter from '../footer/BlueprintFooter';
-import { SiteHeader } from '../site/SiteChrome';
 
 const LAST_FRAME = 200;
 const MAX_CACHED_FRAMES = 201;
 const FRAME_PREFETCH_AHEAD = 5;
 const FRAME_PREFETCH_BEHIND = 2;
+const SCROLL_MILESTONES = [46, 111, 158];
+const MILESTONE_EASE_RADIUS = 8;
+const NORMAL_SCRUB_DURATION = 0.45;
+const MILESTONE_SCRUB_DURATION = 1;
 
 const CAMERA_STOPS = [
   { frame: 0, scale: 1, x: 0, y: 0 },
@@ -22,22 +24,30 @@ const CAMERA_STOPS = [
 
 const MOBILE_CAMERA_STOPS = [
   { frame: 0, scale: 1, x: 0, y: 0 },
-  { frame: 46, scale: 1.16, x: -220, y: 0 },
-  { frame: 110, scale: 1.16, x: -220, y: 0 },
-  { frame: 130, scale: 1.16, x: 220, y: 0 },
-  { frame: 170, scale: 1.16, x: 220, y: 0 },
-  { frame: LAST_FRAME, scale: 1.02, x: 0, y: 0 },
+  // Keep the full composition visible on narrow screens instead of panning
+  // between close crops for each story card.
+  { frame: 46, scale: 1, x: 0, y: 0 },
+  { frame: 110, scale: 1, x: 0, y: 0 },
+  { frame: 130, scale: 1, x: 0, y: 0 },
+  { frame: 170, scale: 1, x: 0, y: 0 },
+  { frame: LAST_FRAME, scale: 1, x: 0, y: 0 },
 ];
 
 interface InteractiveCanvasEngineProps {
-  initialFrames: HTMLImageElement[] | null;
+  videoSource: string | null;
+  onSceneReady: () => void;
+  children: ReactNode;
 }
 
-export default function InteractiveCanvasEngine({ initialFrames }: InteractiveCanvasEngineProps) {
+export default function InteractiveCanvasEngine({ videoSource, onSceneReady, children }: InteractiveCanvasEngineProps) {
   const sectionRef = useRef<HTMLElement>(null);
+  const sequenceTrackRef = useRef<HTMLDivElement>(null);
+  const scrollContentRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const sceneVisualRef = useRef<HTMLDivElement>(null);
   const posterRef = useRef<HTMLImageElement>(null);
+  const loadVeilRef = useRef<HTMLDivElement>(null);
   const introVeilRef = useRef<HTMLDivElement>(null);
   const frameIndexRef = useRef(0);
   const imageCacheRef = useRef(new Map<number, HTMLImageElement>());
@@ -48,8 +58,9 @@ export default function InteractiveCanvasEngine({ initialFrames }: InteractiveCa
   useEffect(() => {
     const canvas = canvasRef.current;
     const section = sectionRef.current;
+    const video = videoRef.current;
     const context = canvas?.getContext('2d', { alpha: false });
-    if (!canvas || !section || !context) return;
+    if (!canvas || !section || !context || !video) return;
 
     gsap.registerPlugin(ScrollTrigger);
     const imageCache = imageCacheRef.current;
@@ -69,7 +80,9 @@ export default function InteractiveCanvasEngine({ initialFrames }: InteractiveCa
     const isReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
     let disposed = false;
     let drawQueued = false;
-    let fallbackActive = true;
+    let fallbackActive = false;
+    let videoReady = false;
+    let sceneReadyNotified = false;
     let sceneReady = false;
     let introAllowed = false;
     let introStarted = false;
@@ -77,6 +90,8 @@ export default function InteractiveCanvasEngine({ initialFrames }: InteractiveCa
     let introTimeline: gsap.core.Timeline | null = null;
     let introHero: HTMLElement | null = null;
     let currentCamera = { scale: 1, x: 0, y: 0 };
+    let desiredVideoTime = 0;
+    let contentCoverProgress = 0;
     const settleState = { y: 0 };
     let settleTimer: number | null = null;
     let settleTween: gsap.core.Tween | null = null;
@@ -87,8 +102,6 @@ export default function InteractiveCanvasEngine({ initialFrames }: InteractiveCa
       if (isNarrow.matches) return Math.min(deviceRatio, lowPower ? 0.8 : 1);
       return Math.min(deviceRatio, lowPower ? 1 : 1.3);
     };
-
-    initialFrames?.forEach((image, index) => cacheFrame(index, image));
 
     const cameraAt = (frame: number) => {
       const stops = isNarrow.matches ? MOBILE_CAMERA_STOPS : CAMERA_STOPS;
@@ -115,10 +128,12 @@ export default function InteractiveCanvasEngine({ initialFrames }: InteractiveCa
       drawQueued = true;
       rafRef.current = requestAnimationFrame(() => {
         drawQueued = false;
-        const source = imageCacheRef.current.get(isReducedMotion.matches ? 0 : frameIndexRef.current);
+        const source = fallbackActive
+          ? imageCacheRef.current.get(isReducedMotion.matches ? 0 : frameIndexRef.current)
+          : videoReady ? video : null;
         if (!source || disposed) return;
-        const sourceWidth = source.naturalWidth;
-        const sourceHeight = source.naturalHeight;
+        const sourceWidth = fallbackActive ? (source as HTMLImageElement).naturalWidth : video.videoWidth;
+        const sourceHeight = fallbackActive ? (source as HTMLImageElement).naturalHeight : video.videoHeight;
         if (!sourceWidth || !sourceHeight) return;
 
         const pixelRatio = getPixelRatio();
@@ -139,9 +154,49 @@ export default function InteractiveCanvasEngine({ initialFrames }: InteractiveCa
         context.clearRect(0, 0, width, height);
         context.drawImage(source, x, y, scaledWidth, scaledHeight);
         // Keep the poster until a decoded sequence frame is drawn to the canvas.
-        if (!sceneReady) revealScene();
+        if (!sceneReady) {
+          revealScene();
+          if (!sceneReadyNotified) {
+            sceneReadyNotified = true;
+            onSceneReady();
+          }
+        }
       });
     };
+
+    const syncVideoToFrame = (frame: number) => {
+      if (!videoReady || !Number.isFinite(video.duration) || video.duration <= 0) return;
+      desiredVideoTime = Math.min(
+        video.duration - 1 / 30,
+        video.duration * Math.max(0, Math.min(LAST_FRAME, frame)) / LAST_FRAME,
+      );
+      if (video.seeking || Math.abs(video.currentTime - desiredVideoTime) < 1 / 30) return;
+      video.currentTime = desiredVideoTime;
+    };
+
+    const onVideoLoaded = () => {
+      if (disposed) return;
+      videoReady = true;
+      video.pause();
+      syncVideoToFrame(frameIndexRef.current);
+      requestDraw();
+    };
+    const onVideoSeeked = () => {
+      if (disposed) return;
+      requestDraw();
+      syncVideoToFrame(frameIndexRef.current);
+    };
+    const onVideoError = () => {
+      if (disposed || fallbackActive) return;
+      videoReady = false;
+      video.pause();
+      fallbackActive = true;
+      ensureFrame(Math.round(frameIndexRef.current));
+    };
+    video.addEventListener('loadeddata', onVideoLoaded);
+    video.addEventListener('seeked', onVideoSeeked);
+    video.addEventListener('error', onVideoError);
+    if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) onVideoLoaded();
 
     let revealScene = () => {};
     const ensureFrame = (index: number) => {
@@ -162,7 +217,6 @@ export default function InteractiveCanvasEngine({ initialFrames }: InteractiveCa
         if (disposed) return;
         cacheFrame(index, image);
         requestDraw();
-        if (fallbackActive && (isReducedMotion.matches ? index === 0 : index === frameIndexRef.current)) revealScene();
       };
       image.onerror = () => loadingFramesRef.current.delete(index);
       image.src = `/slower-sequence-webp/frame_${String(index).padStart(4, '0')}.webp`;
@@ -180,6 +234,7 @@ export default function InteractiveCanvasEngine({ initialFrames }: InteractiveCa
       requestDraw();
       if (isReducedMotion.matches) {
         gsap.set(canvas, { opacity: 0 });
+        gsap.set(loadVeilRef.current, { opacity: 0 });
         gsap.set(introHero, { opacity: 1, scale: 1, y: 0 });
         if (posterRef.current) gsap.set(posterRef.current, { opacity: 1 });
         return;
@@ -187,6 +242,7 @@ export default function InteractiveCanvasEngine({ initialFrames }: InteractiveCa
       if (frameIndexRef.current > 0) {
         introInterrupted = true;
         gsap.set(canvas, { opacity: 1 });
+        gsap.set(loadVeilRef.current, { opacity: 0 });
         if (posterRef.current) gsap.set(posterRef.current, { opacity: 0 });
         const introProgress = smoothRange(frameIndexRef.current, 0, 45);
         if (introVeilRef.current) {
@@ -238,24 +294,27 @@ export default function InteractiveCanvasEngine({ initialFrames }: InteractiveCa
     resizeObserver.observe(canvas);
 
     const scrollState = { frame: 0 };
+    let activeScrubDuration = isReducedMotion.matches ? 0.12 : NORMAL_SCRUB_DURATION;
     const gsapContext = gsap.context(() => {
       introHero = section.querySelector<HTMLElement>('[data-intro-hero]');
       introTimeline = gsap.timeline({ paused: true });
-      introTimeline.fromTo(sceneVisualRef.current, { opacity: 0, scale: 1.055 }, {
-        opacity: 1,
+      // Keep the poster visible while a remounted video is loading. Hiding the
+      // whole scene wrapper here made client-side returns look like a black page.
+      introTimeline.fromTo(sceneVisualRef.current, { scale: 1.08 }, {
         scale: 1,
-        duration: 2.5,
+        duration: 1.5,
         ease: 'power2.out',
       }, 0);
-      introTimeline.to(canvas, { opacity: 1, duration: 2.5, ease: 'power2.inOut' }, 0);
-      if (posterRef.current) introTimeline.to(posterRef.current, { opacity: 0, duration: 2.5, ease: 'power2.inOut' }, 0);
+      introTimeline.to(canvas, { opacity: 1, duration: 1.5, ease: 'power2.inOut' }, 0);
+      if (posterRef.current) introTimeline.to(posterRef.current, { opacity: 0, duration: 1.5, ease: 'power2.inOut' }, 0);
+      introTimeline.fromTo(loadVeilRef.current, { opacity: 0.9 }, { opacity: 0, duration: 1.5, ease: 'power2.inOut' }, 0);
       // Let the house complete its quiet zoom before introducing the text and veil.
       introTimeline.to(introVeilRef.current, { opacity: 1, duration: 2, ease: 'power2.inOut' }, isNarrow.matches ? 1.5 : 2.1);
       introTimeline.to(introHero, {
         opacity: 1,
         scale: 1,
         y: 0,
-        duration: isNarrow.matches ? 1.6 : 2,
+        duration: 1.5,
         ease: 'power3.out',
       }, isNarrow.matches ? 1.5 : 2.1);
       if (isReducedMotion.matches) introTimeline.pause(0);
@@ -264,9 +323,21 @@ export default function InteractiveCanvasEngine({ initialFrames }: InteractiveCa
         scrollTrigger: {
           trigger: section,
           start: 'top top',
+          endTrigger: sequenceTrackRef.current,
           end: 'bottom bottom',
-          scrub: isReducedMotion.matches ? 0.12 : 0.45,
+          scrub: activeScrubDuration,
           invalidateOnRefresh: true,
+          onUpdate: (self) => {
+            if (isReducedMotion.matches) return;
+            const targetFrame = self.progress * LAST_FRAME;
+            const nearMilestone = SCROLL_MILESTONES.some(
+              (milestone) => Math.abs(targetFrame - milestone) <= MILESTONE_EASE_RADIUS,
+            );
+            const nextDuration = nearMilestone ? MILESTONE_SCRUB_DURATION : NORMAL_SCRUB_DURATION;
+            if (nextDuration === activeScrubDuration) return;
+            activeScrubDuration = nextDuration;
+            self.getTween()?.duration(nextDuration);
+          },
         },
         onUpdate: () => {
           const frame = scrollState.frame;
@@ -277,42 +348,27 @@ export default function InteractiveCanvasEngine({ initialFrames }: InteractiveCa
           lastDirectionRef.current = nextFrame > frameIndexRef.current ? 1 : -1;
           frameIndexRef.current = nextFrame;
         }
+        if (!isReducedMotion.matches && !fallbackActive) syncVideoToFrame(frame);
         window.dispatchEvent(new CustomEvent('architecture-frame', { detail: frame }));
-        ensureFrame(isReducedMotion.matches ? 0 : nextFrame);
+        if (fallbackActive) ensureFrame(isReducedMotion.matches ? 0 : nextFrame);
         if (!isReducedMotion.matches && fallbackActive) {
           for (let ahead = 1; ahead <= FRAME_PREFETCH_AHEAD; ahead += 1) ensureFrame(nextFrame + ahead * lastDirectionRef.current);
           for (let behind = 1; behind <= FRAME_PREFETCH_BEHIND; behind += 1) ensureFrame(nextFrame - behind * lastDirectionRef.current);
         }
-        const chapterStarts = [0, 46, 111];
-        const chapterBlur = chapterStarts.reduce((max, start) => {
-          const pulseStart = start === 0 ? 0 : start - 3;
-          const pulse = smoothRange(frame, pulseStart, start + 4) * (1 - smoothRange(frame, start + 8, start + 14));
-          return Math.max(max, pulse);
-        }, 0);
-        const treatmentAcross = (start: number, end: number) =>
-          smoothRange(frame, start - 4, start + 5) * (1 - smoothRange(frame, end - 8, end + 2));
-        const facadeTreatment = treatmentAcross(46, 110);
-        const frameTreatment = treatmentAcross(130, 170);
-        const storyTreatment = Math.max(facadeTreatment, frameTreatment);
-        const rfqTextBlur = smoothRange(frame, 158, 164) * (1 - smoothRange(frame, 174, 182));
-        const terminalProgress = smoothRange(frame, 168, 180);
-        const terminalBlur = smoothRange(frame, 168, 180) * (lowPower ? 16 : 24);
-        const revealBlur = Math.max(chapterBlur * 1.15, rfqTextBlur * 1.15, storyTreatment * (lowPower ? 10 : 14));
-        const blur = Math.max(terminalBlur, revealBlur);
-        canvas.style.filter = blur > 0 ? `blur(${blur}px)` : 'none';
-        sceneVisualRef.current?.style.setProperty('--scene-scale', String(1 + terminalProgress * 0.02));
-        const storyVeil = section.querySelector<HTMLElement>('[data-story-veil]');
-        if (storyVeil) storyVeil.style.opacity = String(storyTreatment * 0.62);
-        const veil = section.querySelector<HTMLElement>('[data-terminal-veil]');
-        if (veil) veil.style.opacity = String(terminalProgress * 0.96);
+        const coverBlur = contentCoverProgress * (lowPower ? 9 : 14);
+        canvas.style.filter = coverBlur > 0.05 ? `blur(${coverBlur}px)` : 'none';
+        const coverVeil = section.querySelector<HTMLElement>('[data-cover-veil]');
+        if (coverVeil) coverVeil.style.opacity = String(contentCoverProgress * 0.9);
+        sceneVisualRef.current?.style.setProperty('--scene-scale', '1');
         const blueVeil = section.querySelector<HTMLElement>('[data-blue-veil]');
         const blueProgress = smoothRange(frame, 157, 180);
-        if (blueVeil) blueVeil.style.opacity = String(blueProgress * 0.18);
+        if (blueVeil) blueVeil.style.opacity = String(blueProgress * 0.12);
         const introProgress = smoothRange(frame, 0, 45);
         if (frame > 0 && introStarted && !introInterrupted) {
           introInterrupted = true;
-          gsap.killTweensOf([canvas, introVeilRef.current, introHero]);
+          gsap.killTweensOf([canvas, loadVeilRef.current, introVeilRef.current, introHero]);
           gsap.set(canvas, { opacity: 1 });
+          gsap.set(loadVeilRef.current, { opacity: 0 });
           if (posterRef.current) gsap.set(posterRef.current, { opacity: 0 });
         }
         if (introInterrupted) {
@@ -334,6 +390,23 @@ export default function InteractiveCanvasEngine({ initialFrames }: InteractiveCa
       },
       });
       timeline.to(scrollState, { frame: LAST_FRAME, duration: 1, ease: 'none' }, 0);
+
+      if (scrollContentRef.current) {
+        ScrollTrigger.create({
+          trigger: scrollContentRef.current,
+          start: 'top bottom',
+          end: 'bottom top',
+          scrub: 0.6,
+          invalidateOnRefresh: true,
+          onUpdate: (self) => {
+            contentCoverProgress = self.progress;
+            const coverBlur = contentCoverProgress * (lowPower ? 9 : 14);
+            canvas.style.filter = coverBlur > 0.05 ? `blur(${coverBlur}px)` : 'none';
+            const coverVeil = section.querySelector<HTMLElement>('[data-cover-veil]');
+            if (coverVeil) coverVeil.style.opacity = String(contentCoverProgress * 0.9);
+          },
+        });
+      }
     }, section);
 
     requestDraw();
@@ -345,6 +418,10 @@ export default function InteractiveCanvasEngine({ initialFrames }: InteractiveCa
       gsapContext.revert();
       resizeObserver.disconnect();
       poster?.removeEventListener('load', onPosterLoaded);
+      video.removeEventListener('loadeddata', onVideoLoaded);
+      video.removeEventListener('seeked', onVideoSeeked);
+      video.removeEventListener('error', onVideoError);
+      video.pause();
       window.removeEventListener('architecture-experience-ready', onExperienceReady);
       window.removeEventListener('scroll', resetAndSettleScene);
       if (settleTimer !== null) window.clearTimeout(settleTimer);
@@ -352,29 +429,40 @@ export default function InteractiveCanvasEngine({ initialFrames }: InteractiveCa
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
       imageCache.clear();
     };
-  }, [initialFrames]);
+  }, [onSceneReady]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !videoSource) return;
+    video.pause();
+    video.load();
+  }, [videoSource]);
 
   return (
-    <section ref={sectionRef} className="journey-section relative h-[950vh] bg-[#080808] md:h-[800vh]" aria-label="Scroll through the architectural sequence">
+    <section ref={sectionRef} className="journey-section relative bg-[#080808]" aria-label="Scroll through the architectural sequence">
       <div className="sticky top-0 h-screen h-[100svh] w-full overflow-hidden bg-[#080808]">
         <div ref={sceneVisualRef} className="architectural-scene-visual absolute -inset-3">
           <img ref={posterRef} src="/slower-sequence-webp/frame_0000.webp" alt="" aria-hidden="true" fetchPriority="high" decoding="async" className="pointer-events-none absolute inset-0 z-10 h-full w-full object-cover" />
-          <canvas ref={canvasRef} className="absolute inset-0 z-[11] block h-full w-full object-cover opacity-0 will-change-transform" aria-label="Scroll-controlled image sequence" />
+          <video ref={videoRef} src={videoSource ?? undefined} muted playsInline preload="auto" aria-hidden="true" className="pointer-events-none absolute inset-0 h-full w-full opacity-0" />
+          <canvas ref={canvasRef} className="absolute inset-0 z-[11] block h-full w-full object-cover opacity-0 will-change-transform" aria-label="Scroll-controlled architectural video" />
         </div>
         <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-b from-[#080808]/30 via-transparent to-[#080808]/55" />
+        <div ref={loadVeilRef} aria-hidden="true" className="pointer-events-none absolute inset-0 z-[13] bg-black opacity-90" />
+        <div data-cover-veil aria-hidden="true" className="pointer-events-none absolute inset-0 z-[15] bg-black opacity-0" />
         <div ref={introVeilRef} data-intro-veil aria-hidden="true" className="pointer-events-none absolute inset-0 z-[16] bg-black/60 opacity-0 backdrop-blur-md" />
         <div data-blue-veil aria-hidden="true" className="pointer-events-none absolute inset-0 z-[14] bg-[#12395B] opacity-0" />
-        <div data-terminal-veil aria-hidden="true" className="pointer-events-none absolute inset-0 z-[15] bg-[#041A2C] opacity-0" />
         <div data-story-veil aria-hidden="true" className="pointer-events-none absolute inset-0 z-[17] bg-black opacity-0" />
         <TypographyLayer />
-        <BlueprintFooter />
-        <SiteHeader overlay />
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-40 h-px bg-white/20">
           <div className="journey-progress h-full bg-[#C5A059]" />
         </div>
         <div className="pointer-events-none absolute inset-x-0 bottom-5 z-40 flex justify-center sm:bottom-7">
           <span className="frosted-copy font-sans text-[10px] uppercase tracking-[0.24em] text-[#F4F4F0]/85 sm:text-xs">Scroll to explore</span>
         </div>
+      </div>
+      <div ref={sequenceTrackRef} aria-hidden="true" className="h-[850vh] md:h-[700vh]" />
+      <div ref={scrollContentRef} className="homepage-scroll-content relative z-20 -mt-[100svh]">
+        {children}
       </div>
     </section>
   );

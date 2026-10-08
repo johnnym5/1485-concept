@@ -9,9 +9,9 @@ const navigation = [
   { href: '/contact', label: 'Contact' },
 ];
 
-export function SiteHeader({ overlay = false, rightSlot }: { overlay?: boolean; rightSlot?: React.ReactNode }) {
+export function SiteHeader() {
   return (
-    <header className={`frosted-site-header box-border ${overlay ? 'absolute inset-x-3 top-3 w-auto max-w-[calc(100vw-1.5rem)] px-3 py-2.5 sm:inset-x-8 sm:top-7 sm:max-w-[calc(100vw-4rem)] sm:px-5 sm:py-3' : 'relative mx-auto w-[calc(100%-1.5rem)] max-w-7xl px-3 py-2.5 sm:w-full sm:px-8 sm:py-5'} z-40 flex items-center justify-between gap-3 rounded-2xl border border-white/10`}>
+    <header className="frosted-site-header fixed inset-x-3 top-3 z-[90] mx-auto box-border flex w-auto max-w-[calc(100vw-1.5rem)] items-center justify-between gap-3 rounded-2xl border border-white/10 px-3 py-2.5 sm:inset-x-8 sm:top-7 sm:max-w-[calc(100vw-4rem)] sm:px-5 sm:py-3">
       <Link href="/" aria-label="14.85 Concept Limited home" className="relative z-[100] flex shrink-0 items-center gap-2 sm:gap-3">
         <img src="/brand/1485-emblem.webp" alt="" className="h-8 w-8 object-contain sm:h-12 sm:w-12" />
         <span className="font-sans text-[9px] uppercase leading-relaxed tracking-[0.14em] text-[#F4F4F0] sm:text-[11px] sm:tracking-[0.22em]">
@@ -33,7 +33,6 @@ export function SiteHeader({ overlay = false, rightSlot }: { overlay?: boolean; 
           ))}
         </nav>
         <MobileMenu />
-        {rightSlot}
       </div>
     </header>
   );
@@ -58,7 +57,7 @@ export function SiteFooter() {
             ['Discuss your project', '/contact'], ['Project brief', '/contact'], ['How we work', '/about'],
           ]} />
           <FooterColumn title="Policies" links={[
-            ['Privacy notice', '/privacy'], ['Website terms', '/terms'], ['Cookie notice', '/cookies'],
+            ['Privacy notice', '/privacy'], ['Website terms', '/terms'], ['Cookie notice', '/cookies'], ['Subprocessors', '/subprocessors'],
           ]} />
         </div>
         <div className="flex flex-col gap-3 pt-6 text-[9px] uppercase tracking-[0.15em] text-white/40 sm:flex-row sm:items-center sm:justify-between sm:text-[10px]">
@@ -87,7 +86,6 @@ function FooterColumn({ title, links }: { title: string; links: Array<[string, s
 export function ContentLayout({ children, motion = 'page' }: { children: React.ReactNode; motion?: string }) {
   return (
     <div className="min-h-screen bg-[#080808] text-[#F4F4F0]">
-      <SiteHeader />
       <main><PageMotion page={motion}>{children}</PageMotion></main>
       <SiteFooter />
     </div>

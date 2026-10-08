@@ -15,13 +15,19 @@ export default function TermsPage() {
         <p>The website presents general information about the practice and its design and engineering coordination services. It is provided for information and discussion. Content is not a project proposal, fee quotation, technical specification, or professional advice for a particular site.</p>
       </LegalSection>
       <LegalSection title="Project inquiries">
-        <p>Submitting the inquiry form starts a conversation only. It does not create a client, consultant, construction, or other professional relationship, and does not reserve capacity or accept a project. Any appointment, scope, fees, programme, deliverables, and responsibilities must be set out in a separate written agreement.</p>
+        <p>Submitting the inquiry form starts a conversation only. You must tick the acceptance box before the form can be submitted. It does not create a client, consultant, construction, or other professional relationship, and does not reserve capacity or accept a project. Any appointment, scope, fees, programme, deliverables, and responsibilities must be set out in a separate written agreement.</p>
       </LegalSection>
       <LegalSection title="Intellectual property">
-        <p>Unless a page states otherwise, the site’s text, visual identity, graphics, and other materials are owned by or used with permission by 14.85 Concept Limited. You may view and share links to the site for personal or business evaluation. You may not reproduce, adapt, publish, or commercially use site materials without prior written permission or another applicable legal basis.</p>
+        <p>Unless a page states otherwise, the site’s text and visual identity are owned by or used with permission by 14.85 Concept Limited. Fonts are distributed under the SIL Open Font License, with license notices included in the site repository. Third-party rights and provenance for every photograph, render, video, and other media asset have not yet been documented in a published asset register; that review must be completed before launch. No third-party client/customer logo list was found in the current site code. Do not assume that a project image, logo, or other asset is cleared for use unless permission or another applicable legal basis has been confirmed.</p>
       </LegalSection>
       <LegalSection title="Acceptable use and availability">
-        <p>Do not attempt to gain unauthorised access, interfere with the site, introduce malicious code, or use the inquiry form to submit unlawful, deceptive, or harmful material. We may update, suspend, or remove site content as the practice and its services develop. We do not promise uninterrupted availability or that every item of information is complete for every purpose.</p>
+        <p>Do not attempt to gain unauthorised access, interfere with the site, introduce malicious code, or use the inquiry form to submit unlawful, deceptive, or harmful material. We may update, suspend, or remove site content as the practice and its services develop. The site is provided on an availability basis without a guaranteed uptime percentage, response-time commitment, service credit, or service-level agreement.</p>
+      </LegalSection>
+      <LegalSection title="Fees, renewal, and cancellation">
+        <p>This website does not sell subscriptions, recurring plans, or paid online services, and no automatic renewal or online cancellation feature is offered. If a separate professional-services agreement includes recurring fees, renewal, or cancellation terms, those terms must be stated in that agreement before it is accepted.</p>
+      </LegalSection>
+      <LegalSection title="Liability">
+        <p>A monetary cap on liability has not yet been approved for publication. Any limitation must be confirmed against the governing law and the separate professional-services agreements before these terms are finalised. Nothing in these terms excludes or limits liability where applicable law does not permit that exclusion or limitation.</p>
       </LegalSection>
       <LegalSection title="External services and changes">
         <p>Links to third-party websites are provided for convenience. Their content and practices are controlled by those providers and are subject to their own terms. These terms may be updated from time to time; the date above indicates the latest published revision.</p>

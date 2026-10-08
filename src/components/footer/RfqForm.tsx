@@ -1,6 +1,7 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
+import { useFormStatus } from 'react-dom';
 import { submitRfq, type RfqActionState } from '@/app/actions/rfq';
 
 const initialState: RfqActionState = { status: 'idle', message: '' };
@@ -19,7 +20,7 @@ function SubmitButton() {
 }
 
 export default function RfqForm({ animated = false }: { animated?: boolean }) {
-  const [state, formAction] = useFormState(submitRfq, initialState);
+  const [state, formAction] = useActionState(submitRfq, initialState);
   const reveal = animated ? { 'data-rfq-reveal': true } : {};
 
   return (
@@ -119,6 +120,11 @@ export default function RfqForm({ animated = false }: { animated?: boolean }) {
           <option value="over-500m">Over ₦500 million</option>
           <option value="not-sure">Not sure yet</option>
         </select>
+      </label>
+
+      <label {...reveal} className="flex items-start gap-2.5 py-1 text-[10px] leading-5 text-[#F4F4F0]/75 sm:text-xs">
+        <input name="acceptTerms" type="checkbox" value="yes" required className="mt-1 accent-[#C5A059]" />
+        <span>I have read and accept the <a href="/terms" target="_blank" rel="noreferrer" className="text-[#C5A059] underline underline-offset-4">Website Terms</a>. Please see the <a href="/privacy" target="_blank" rel="noreferrer" className="text-[#C5A059] underline underline-offset-4">Privacy Notice</a> for how this inquiry is handled.</span>
       </label>
 
       <div {...reveal} className="pt-0.5 sm:pt-1"><SubmitButton /></div>

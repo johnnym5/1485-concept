@@ -10,6 +10,7 @@ const routes = [
   ['/privacy', 0.3],
   ['/terms', 0.3],
   ['/cookies', 0.3],
+  ['/subprocessors', 0.2],
 ] as const;
 
 export default function sitemap(): MetadataRoute.Sitemap {

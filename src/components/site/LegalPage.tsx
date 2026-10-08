@@ -21,7 +21,7 @@ export function LegalPage({
         <div data-motion-reveal><PageEyebrow>14.85 / {eyebrow}</PageEyebrow></div>
         <div data-motion-reveal><PageTitle>{title}</PageTitle></div>
         <p data-motion-reveal className="mt-8 max-w-3xl text-base leading-8 text-white/65 sm:text-lg sm:leading-9">{intro}</p>
-        <p className="mt-5 text-[10px] uppercase tracking-[0.15em] text-white/40">Last updated 7 October 2026</p>
+        <p className="mt-5 text-[10px] uppercase tracking-[0.15em] text-white/40">Last updated 8 October 2026</p>
         <div className="mt-14 space-y-12 border-t border-white/15 pt-10 sm:mt-20 sm:space-y-14 sm:pt-14">
           {children}
         </div>

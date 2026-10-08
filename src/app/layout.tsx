@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import { SiteMotion } from '@/components/site/SiteMotion';
+import { SiteHeader } from '@/components/site/SiteChrome';
+import { CookieConsent } from '@/components/site/CookieConsent';
 import { siteOrigin } from '@/lib/site';
 import './globals.css';
 
@@ -41,7 +43,11 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body><SiteMotion>{children}</SiteMotion></body>
+      <body>
+        <SiteHeader />
+        <SiteMotion>{children}</SiteMotion>
+        <CookieConsent />
+      </body>
     </html>
   );
 }

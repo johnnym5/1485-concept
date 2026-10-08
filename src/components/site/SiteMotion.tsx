@@ -3,7 +3,6 @@
 import { useLayoutEffect, useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { gsap } from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
 export function SiteMotion({ children }: { children: React.ReactNode }) {
   const panelRef = useRef<HTMLDivElement>(null);
@@ -40,7 +39,6 @@ export function SiteMotion({ children }: { children: React.ReactNode }) {
   useLayoutEffect(() => {
     const panel = panelRef.current;
     if (!panel) return;
-    gsap.registerPlugin(ScrollTrigger);
     const context = gsap.context(() => {}, panel);
 
     const releasePanel = () => {
@@ -198,164 +196,118 @@ export function SiteMotion({ children }: { children: React.ReactNode }) {
 export function PageMotion({ page, children }: { page: string; children: React.ReactNode }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
-  const previousPathRef = useRef(pathname);
 
   useLayoutEffect(() => {
     const root = rootRef.current;
     if (!root) return;
-    const isRouteChange = previousPathRef.current !== pathname;
-    previousPathRef.current = pathname;
-    const waitForRouteTransition = isRouteChange || document.documentElement.dataset.siteTransition === 'covered';
-    gsap.registerPlugin(ScrollTrigger);
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    let boundaryCleanup = () => {};
-    let routeRevealCleanup = () => {};
-    let initialBoundaryCheck: number | null = null;
-    let layoutRefreshFrame: number | null = null;
-    const refreshAfterExperienceLoad = () => {
-      if (layoutRefreshFrame !== null) window.cancelAnimationFrame(layoutRefreshFrame);
-      layoutRefreshFrame = window.requestAnimationFrame(() => {
-        layoutRefreshFrame = null;
-        ScrollTrigger.refresh();
-      });
-    };
-    window.addEventListener('architecture-experience-ready', refreshAfterExperienceLoad);
+    let focusFrame: number | null = null;
+    let focusCleanup = () => {};
     const context = gsap.context(() => {
       const elements = Array.from(root.querySelectorAll<HTMLElement>('[data-motion-reveal]'));
+      gsap.set(root, { autoAlpha: 1, scale: 1, filter: 'blur(0px)' });
       if (reducedMotion) {
-        gsap.set(elements, { clearProps: 'all' });
+        gsap.set(elements, { autoAlpha: 1, clearProps: 'filter,transform,willChange' });
         return;
       }
 
-      const enterPage = (settleVisibleContent = false) => {
-        if (settleVisibleContent) {
-          const visibleElements = elements.filter((element) => {
-            const bounds = element.getBoundingClientRect();
-            return bounds.top < window.innerHeight && bounds.bottom > 0;
-          });
-          gsap.set(visibleElements, {
-            autoAlpha: 1,
-            x: 0,
-            y: 0,
-            filter: 'blur(0px)',
-            clearProps: 'willChange',
-          });
-          gsap.set(root, { autoAlpha: 1, x: 0, y: 0, scale: 1, filter: 'blur(0px)' });
-          return;
-        }
-        gsap.fromTo(root,
-          { autoAlpha: 0, scale: 1.025, filter: 'blur(10px)' },
-          {
-            autoAlpha: 1,
-            scale: 1,
-            filter: 'blur(0px)',
-            duration: window.matchMedia('(max-width: 767px)').matches ? 0.78 : 1,
-            ease: 'power2.out',
-            clearProps: 'filter,transform,willChange',
-          },
-        );
+      const focusMotion = elements.map((element) => {
+        gsap.set(element, { autoAlpha: 0, y: 18, filter: 'blur(0px)', willChange: 'transform,opacity,filter' });
+        // Keep filter easing independent so it can run alongside the entry
+        // fade without competing for the element's opacity.
+        element.style.transition = 'filter 480ms ease-out';
+        return { element, visible: false, targetVisible: false, animating: false };
+      });
+
+      const updateFocus = () => {
+        focusFrame = null;
+        const viewportHeight = window.innerHeight;
+        const maxScroll = Math.max(0, document.documentElement.scrollHeight - viewportHeight);
+        const atBoundary = window.scrollY <= 4 || window.scrollY >= maxScroll - 4;
+
+        focusMotion.forEach(({ element, visible, animating }) => {
+          if (atBoundary) {
+            element.style.filter = 'blur(0px)';
+            if (visible && !animating) element.style.opacity = '1';
+            return;
+          }
+
+          const bounds = element.getBoundingClientRect();
+          const elementCenter = bounds.top + bounds.height / 2;
+          const distance = Math.abs(elementCenter - viewportHeight / 2);
+          // Keep a tight, crisp focus band around the viewport center. Rows
+          // leaving that band should recede like the reference: noticeably
+          // blurred and faded, while remaining legible as they approach focus.
+          const strength = Math.max(0, Math.min(1, (distance - viewportHeight * 0.3) / (viewportHeight * 0.45)));
+          element.style.filter = `blur(${(strength * 5).toFixed(1)}px)`;
+          if (visible && !animating) element.style.opacity = String(1 - strength * 0.2);
+        });
       };
 
-      let routeRevealFallback: number | null = null;
-      let waitingForRouteWipe = false;
-      if (waitForRouteTransition) {
-        // Keep the incoming page painted beneath the transition overlay. If navigation or
-        // the reveal event is interrupted, the destination must not remain black.
-        gsap.set(root, { autoAlpha: 1, y: 0, filter: 'blur(0px)' });
-        waitingForRouteWipe = true;
-        const onRouteRevealed = () => {
-          if (!waitingForRouteWipe) return;
-          waitingForRouteWipe = false;
-          if (routeRevealFallback !== null) window.clearTimeout(routeRevealFallback);
-          context.add(() => enterPage(true));
-        };
-        window.addEventListener('site-route-revealed', onRouteRevealed);
-        routeRevealFallback = window.setTimeout(onRouteRevealed, 1400);
-        routeRevealCleanup = () => {
-          waitingForRouteWipe = false;
-          window.removeEventListener('site-route-revealed', onRouteRevealed);
-          if (routeRevealFallback !== null) window.clearTimeout(routeRevealFallback);
-        };
-      } else if (page !== 'home-support') {
-        enterPage();
-      }
+      const requestFocusUpdate = () => {
+        if (focusFrame !== null) return;
+        focusFrame = window.requestAnimationFrame(updateFocus);
+      };
+      window.addEventListener('scroll', requestFocusUpdate, { passive: true });
+      window.addEventListener('resize', requestFocusUpdate);
+      updateFocus();
 
-      const revealTriggers: ScrollTrigger[] = [];
-      elements.forEach((element) => {
-        const direction = element.dataset.motionDirection;
-        const initialX = direction === 'right' ? 28 : direction === 'left' ? -20 : 0;
-        gsap.set(element, { autoAlpha: 0, x: initialX, y: 34, filter: 'blur(8px)', willChange: 'transform, opacity, filter' });
-
-        const reveal = gsap.timeline({
-          scrollTrigger: {
-            trigger: element,
-            start: 'top 82%',
-            end: 'bottom 18%',
-            scrub: window.matchMedia('(max-width: 767px)').matches ? 0.35 : 0.55,
-            invalidateOnRefresh: true,
+      const animateVisibility = (element: HTMLElement, shouldShow: boolean) => {
+        const motion = focusMotion.find((item) => item.element === element);
+        if (!motion || (motion.targetVisible === shouldShow && (motion.animating || motion.visible === shouldShow))) return;
+        gsap.killTweensOf(element);
+        motion.targetVisible = shouldShow;
+        motion.animating = true;
+        element.style.transition = 'filter 480ms ease-out';
+        const delay = shouldShow ? Number(element.dataset.motionDelay) : 0;
+        gsap.to(element, {
+          autoAlpha: shouldShow ? 1 : 0,
+          y: shouldShow ? 0 : 18,
+          duration: shouldShow ? 0.78 : 0.52,
+          delay: Number.isFinite(delay) ? delay : 0,
+          ease: 'power2.out',
+          onComplete: () => {
+            motion.animating = false;
+            motion.visible = shouldShow;
+            if (shouldShow) {
+              gsap.set(element, { clearProps: 'transform,willChange' });
+              element.style.transition = 'filter 480ms ease-out, opacity 480ms ease-out';
+              requestFocusUpdate();
+            } else {
+              gsap.set(element, { clearProps: 'willChange' });
+            }
           },
         });
-
-        reveal.to(element, {
-          autoAlpha: 1,
-          x: 0,
-          y: 0,
-          filter: 'blur(0px)',
-          duration: 0.42,
-          ease: 'none',
-        }, 0);
-        reveal.to(element, {
-          autoAlpha: 0,
-          x: 0,
-          y: -48,
-          filter: 'blur(8px)',
-          duration: 0.42,
-          ease: 'none',
-        }, 0.58);
-        if (reveal.scrollTrigger) revealTriggers.push(reveal.scrollTrigger);
-      });
-
-      // At the true end of a page, settle all main content into a readable state.
-      // This prevents the last scroll-scrub position from leaving a paragraph blurred.
-      let settledAtPageEnd = false;
-      const syncPageEnd = () => {
-        const atPageEnd = window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 4;
-        if (atPageEnd === settledAtPageEnd) return;
-        settledAtPageEnd = atPageEnd;
-
-        if (atPageEnd) {
-          revealTriggers.forEach((trigger) => trigger.disable(false));
-          gsap.set(elements, {
-            autoAlpha: 1,
-            x: 0,
-            y: 0,
-            filter: 'blur(0px)',
-            clearProps: 'willChange',
-          });
-        } else {
-          revealTriggers.forEach((trigger) => trigger.enable(false, false));
-          ScrollTrigger.refresh();
-        }
       };
-      window.addEventListener('scroll', syncPageEnd, { passive: true });
-      window.addEventListener('resize', syncPageEnd);
-      initialBoundaryCheck = window.requestAnimationFrame(() => {
-        ScrollTrigger.refresh();
-        syncPageEnd();
-      });
-      boundaryCleanup = () => {
-        window.removeEventListener('scroll', syncPageEnd);
-        window.removeEventListener('resize', syncPageEnd);
+
+      const observer = typeof IntersectionObserver === 'undefined'
+        ? null
+        : new IntersectionObserver((entries) => {
+            entries.forEach((entry) => {
+              if (!(entry.target instanceof HTMLElement)) return;
+              animateVisibility(entry.target, entry.isIntersecting);
+            });
+          }, { threshold: 0.08, rootMargin: '-6% 0px -6% 0px' });
+      if (observer) elements.forEach((element) => observer.observe(element));
+      else elements.forEach((element) => animateVisibility(element, true));
+
+      focusCleanup = () => {
+        window.removeEventListener('scroll', requestFocusUpdate);
+        window.removeEventListener('resize', requestFocusUpdate);
+        if (focusFrame !== null) window.cancelAnimationFrame(focusFrame);
+        observer?.disconnect();
+        focusMotion.forEach(({ element }) => {
+          gsap.killTweensOf(element);
+          element.style.removeProperty('transition');
+          element.style.removeProperty('filter');
+          element.style.removeProperty('opacity');
+          element.style.removeProperty('will-change');
+        });
       };
     }, root);
 
     return () => {
-      boundaryCleanup();
-      routeRevealCleanup();
-      window.removeEventListener('architecture-experience-ready', refreshAfterExperienceLoad);
-      if (layoutRefreshFrame !== null) window.cancelAnimationFrame(layoutRefreshFrame);
-      if (initialBoundaryCheck !== null) window.cancelAnimationFrame(initialBoundaryCheck);
-      gsap.killTweensOf(root.querySelectorAll('[data-motion-reveal]'));
+      focusCleanup();
       context.revert();
     };
   }, [page, pathname]);
