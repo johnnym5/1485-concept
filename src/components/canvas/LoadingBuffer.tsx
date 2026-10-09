@@ -3,9 +3,6 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import InteractiveCanvasEngine from './InteractiveCanvasEngine';
 
-const ARCHITECTURE_VIDEO_PATH = '/sequence/architecture-scroll.mp4';
-const ARCHITECTURE_VIDEO_CACHE = '1485-architecture-video-v1';
-
 const loadingMessages = [
   'Preparing the experience',
   'Sorry this is taking a little longer than expected',
@@ -21,14 +18,12 @@ export default function LoadingBuffer({ children }: { children: ReactNode }) {
   const [brandReady, setBrandReady] = useState(false);
   const [introModeResolved, setIntroModeResolved] = useState(false);
   const [experiencePrepared, setExperiencePrepared] = useState(false);
-  const [videoSource, setVideoSource] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [loadingMessageIndex, setLoadingMessageIndex] = useState(0);
   const loadingScreenRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const brandTimerRef = useRef<number | null>(null);
   const messageIntervalRef = useRef<number | null>(null);
-  const videoObjectUrlRef = useRef<string | null>(null);
   const fallbackStartedRef = useRef(false);
   const brandPlaybackStartedRef = useRef(false);
   const finishBrandIntro = useCallback(() => {
@@ -52,91 +47,13 @@ export default function LoadingBuffer({ children }: { children: ReactNode }) {
   }, [finishBrandIntro]);
 
   useEffect(() => {
-    let cancelled = false;
-    const prepareExperience = async () => {
-      try {
-        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-          setProgress(88);
-          setExperiencePrepared(true);
-          return;
-        }
-        let videoCache: Cache | null = null;
-        let cachedVideo: Response | undefined;
-        if ('caches' in window) {
-          try {
-            videoCache = await window.caches.open(ARCHITECTURE_VIDEO_CACHE);
-            cachedVideo = await videoCache.match(ARCHITECTURE_VIDEO_PATH);
-          } catch {
-            // Continue with the normal network request when Cache Storage is unavailable.
-          }
-        }
-        if (cachedVideo) {
-          const objectUrl = URL.createObjectURL(await cachedVideo.blob());
-          if (cancelled) {
-            URL.revokeObjectURL(objectUrl);
-            return;
-          }
-          videoObjectUrlRef.current = objectUrl;
-          setVideoSource(objectUrl);
-          setProgress(88);
-          fallbackStartedRef.current = true;
-          setBrandMode('logo');
-          brandTimerRef.current = window.setTimeout(finishBrandIntro, 760);
-        } else {
-          setIntroModeResolved(true);
-          const response = await fetch(ARCHITECTURE_VIDEO_PATH, { cache: 'force-cache' });
-          if (!response.ok) throw new Error('Unable to load the architectural video');
-          const totalBytes = Number(response.headers.get('content-length')) || 0;
-          const chunks: Uint8Array[] = [];
-          let receivedBytes = 0;
-          if (response.body) {
-            const reader = response.body.getReader();
-            while (true) {
-              const { done, value } = await reader.read();
-              if (done) break;
-              if (!value) continue;
-              chunks.push(value);
-              receivedBytes += value.byteLength;
-              if (totalBytes > 0) {
-                const downloadProgress = Math.min(88, Math.round((receivedBytes / totalBytes) * 88));
-                setProgress((current) => Math.max(current, downloadProgress));
-              }
-            }
-          } else {
-            const buffer = await response.arrayBuffer();
-            chunks.push(new Uint8Array(buffer));
-            receivedBytes = buffer.byteLength;
-          }
-          const videoBlob = new Blob(chunks, { type: response.headers.get('content-type') || 'video/mp4' });
-          if (cancelled) return;
-          if (videoCache) {
-            const cachedResponse = new Response(videoBlob, { headers: { 'Content-Type': videoBlob.type } });
-            await videoCache.put(ARCHITECTURE_VIDEO_PATH, cachedResponse).catch(() => undefined);
-          }
-          const objectUrl = URL.createObjectURL(videoBlob);
-          videoObjectUrlRef.current = objectUrl;
-          setVideoSource(objectUrl);
-          setProgress(88);
-        }
-      } catch {
-        if (cancelled) return;
-        // Let the media element try the public asset directly; the canvas has
-        // an on-demand WebP fallback if the video itself cannot be decoded.
-        setIntroModeResolved(true);
-        setVideoSource(ARCHITECTURE_VIDEO_PATH);
-        setProgress(88);
-      } finally {
-        if (!cancelled && window.matchMedia('(prefers-reduced-motion: reduce)').matches) setIntroModeResolved(true);
-      }
-    };
-
-    void prepareExperience();
+    setProgress(88);
+    setIntroModeResolved(true);
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) setExperiencePrepared(true);
     return () => {
-      cancelled = true;
       if (brandTimerRef.current !== null) window.clearTimeout(brandTimerRef.current);
-      if (videoObjectUrlRef.current !== null) URL.revokeObjectURL(videoObjectUrlRef.current);
     };
-  }, [finishBrandIntro]);
+  }, []);
 
   useEffect(() => {
     if (!brandReady || !experiencePrepared) return;
@@ -207,7 +124,7 @@ export default function LoadingBuffer({ children }: { children: ReactNode }) {
 
   return (
     <>
-      <InteractiveCanvasEngine videoSource={videoSource} onSceneReady={onSceneReady}>
+      <InteractiveCanvasEngine onSceneReady={onSceneReady}>
         {children}
       </InteractiveCanvasEngine>
       {loaderVisible && (

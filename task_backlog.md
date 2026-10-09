@@ -7,15 +7,14 @@ Status Tracker: `TODO` · `DOING` · `BLOCKED` · `DONE`
 - [ ] **T-02:** Initialize Next.js 14 App Router with Tailwind CSS and TypeScript.
 - [ ] **T-03:** Define brand color variables in `tailwind.config.ts` (Obsidian: `#080808`, Gold: `#C5A059`, Off-White: `#F4F4F0`).
 
-## Phase 2: Core Canvas Engine
-- [ ] **T-04:** Build `LoadingBuffer.tsx` to preload frames 0 through 30 before mounting the canvas.
-- [ ] **T-05:** Build `InteractiveCanvasEngine.tsx`. Draw `frame_0000.webp` to the canvas.
-- [ ] **T-06:** Integrate GSAP ScrollTrigger. Map `window.scrollY` (0 to 100%) to `frameIndex` (0 to 239). Validate smooth scrubbing.
+## Phase 2: Sticky Scene Playback
+- [x] **T-04:** Keep the home scene sticky and preserve the loading and intro transition.
+- [x] **T-05:** Play the exploded-house video in hero (0–2s), facade (2–6s), and reinforced-concrete (6–10s) chapters; ease playback at chapter edges and pause at each endpoint.
+- [x] **T-06:** Use the exterior, annotated exploded, and clean exploded JPGs when the connection is slow, Data Saver is enabled, or video loading/playback fails. Defer later stills and crossfade over two seconds.
 
-## Phase 3: Spatial Matrix & Depth
-- [ ] **T-07:** Implement `KEYFRAME_MATRIX.json` parsing. Apply Canvas `ctx.scale()` and `ctx.translate()` based on the active frame.
-- [ ] **T-08:** Build `TypographyLayer.tsx`. Sync text visibility and Y-axis translation to the frame checkpoints.
-- [ ] **T-09:** (Optional/Stretch for Agent) Generate alpha-mask overlay frames for the first 80 frames to allow text to rise *behind* the building.
+## Phase 3: Chapter Text & Depth
+- [x] **T-07:** Keep chapter text synchronized to the hero, facade, and reinforced-concrete scroll milestones.
+- [x] **T-08:** Preserve the sticky-scene blur, darkening, veils, and footer transitions as content scrolls over the scene.
 
 ## Phase 4: Security & Footer
 - [ ] **T-10:** Build `BlueprintFooter.tsx` containing the RFQ form.

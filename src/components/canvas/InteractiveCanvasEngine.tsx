@@ -1,323 +1,361 @@
 'use client';
 
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import Image from 'next/image';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { getSceneSegment, SCENE_FALLBACK_IMAGES, SCENE_SEGMENTS, SCENE_VIDEO_SOURCE } from '../../lib/sceneStrategy.mjs';
 import TypographyLayer from '../overlay/TypographyLayer';
 
 const LAST_FRAME = 200;
-const MAX_CACHED_FRAMES = 201;
-const FRAME_PREFETCH_AHEAD = 5;
-const FRAME_PREFETCH_BEHIND = 2;
-const SCROLL_MILESTONES = [46, 111, 158];
-const MILESTONE_EASE_RADIUS = 8;
-const NORMAL_SCRUB_DURATION = 0.45;
-const MILESTONE_SCRUB_DURATION = 1;
-
-const CAMERA_STOPS = [
-  { frame: 0, scale: 1, x: 0, y: 0 },
-  { frame: 48, scale: 1.35, x: -34, y: -8 },
-  { frame: 112, scale: 1.25, x: 38, y: 12 },
-  { frame: 160, scale: 1.06, x: 0, y: 0 },
-  { frame: LAST_FRAME, scale: 1.02, x: 0, y: 0 },
-];
-
-const MOBILE_CAMERA_STOPS = [
-  { frame: 0, scale: 1, x: 0, y: 0 },
-  // Keep the full composition visible on narrow screens instead of panning
-  // between close crops for each story card.
-  { frame: 46, scale: 1, x: 0, y: 0 },
-  { frame: 110, scale: 1, x: 0, y: 0 },
-  { frame: 130, scale: 1, x: 0, y: 0 },
-  { frame: 170, scale: 1, x: 0, y: 0 },
-  { frame: LAST_FRAME, scale: 1, x: 0, y: 0 },
-];
-
+const VIDEO_PREVIEW_ONLY = true;
 interface InteractiveCanvasEngineProps {
-  videoSource: string | null;
   onSceneReady: () => void;
   children: ReactNode;
 }
 
-export default function InteractiveCanvasEngine({ videoSource, onSceneReady, children }: InteractiveCanvasEngineProps) {
+export default function InteractiveCanvasEngine({ onSceneReady, children }: InteractiveCanvasEngineProps) {
   const sectionRef = useRef<HTMLElement>(null);
   const sequenceTrackRef = useRef<HTMLDivElement>(null);
   const scrollContentRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
   const sceneVisualRef = useRef<HTMLDivElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const posterRef = useRef<HTMLImageElement>(null);
   const loadVeilRef = useRef<HTMLDivElement>(null);
   const introVeilRef = useRef<HTMLDivElement>(null);
   const frameIndexRef = useRef(0);
-  const imageCacheRef = useRef(new Map<number, HTMLImageElement>());
-  const loadingFramesRef = useRef(new Set<number>());
-  const lastDirectionRef = useRef(1);
-  const rafRef = useRef<number | null>(null);
+  const segmentRef = useRef<string | null>(null);
+  const activeImageIndexRef = useRef(0);
+  const readyRef = useRef(false);
+  const useImagesRef = useRef(false);
+  const loadedImagesRef = useRef(new Set([0]));
+  const decodedImagesRef = useRef(new Set<number>());
+  const [useImages, setUseImages] = useState(false);
+  const [loadedImages, setLoadedImages] = useState<number[]>([0]);
+  const [decodedImages, setDecodedImages] = useState<number[]>([]);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
 
   useEffect(() => {
-    const canvas = canvasRef.current;
     const section = sectionRef.current;
     const video = videoRef.current;
-    const context = canvas?.getContext('2d', { alpha: false });
-    if (!canvas || !section || !context || !video) return;
+    const scene = sceneVisualRef.current;
+    const poster = posterRef.current;
+    if (!section || !video || !scene || !poster) return;
 
     gsap.registerPlugin(ScrollTrigger);
-    const imageCache = imageCacheRef.current;
-    imageCache.clear();
-    loadingFramesRef.current.clear();
-
-    const cacheFrame = (index: number, image: HTMLImageElement) => {
-      imageCacheRef.current.delete(index);
-      imageCacheRef.current.set(index, image);
-      while (imageCacheRef.current.size > MAX_CACHED_FRAMES) {
-        const oldestIndex = imageCacheRef.current.keys().next().value;
-        if (oldestIndex === undefined) break;
-        imageCacheRef.current.delete(oldestIndex);
-      }
-    };
-    const isNarrow = window.matchMedia('(max-width: 767px)');
-    const isReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const lowNetwork = !VIDEO_PREVIEW_ONLY && reducedMotion;
     let disposed = false;
-    let drawQueued = false;
-    let fallbackActive = false;
-    let videoReady = false;
-    let sceneReadyNotified = false;
-    let sceneReady = false;
     let introAllowed = false;
     let introStarted = false;
     let introInterrupted = false;
+    let sceneReady = false;
+    let playbackRejected = false;
+    let waitingForInitialVideoReady = true;
+    let seekToken = 0;
+    let currentImageIndex = 0;
+    let coverProgress = 0;
+    let playbackWatchdog: number | null = null;
+    let bufferWatchdog: number | null = null;
+    let accelerationTween: gsap.core.Tween | null = null;
+    let decelerationTween: gsap.core.Tween | null = null;
     let introTimeline: gsap.core.Timeline | null = null;
     let introHero: HTMLElement | null = null;
-    let currentCamera = { scale: 1, x: 0, y: 0 };
-    let desiredVideoTime = 0;
-    let contentCoverProgress = 0;
-    const settleState = { y: 0 };
-    let settleTimer: number | null = null;
-    let settleTween: gsap.core.Tween | null = null;
-    const connection = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
-    const lowPower = connection?.saveData === true || navigator.hardwareConcurrency <= 4;
-    const getPixelRatio = () => {
-      const deviceRatio = window.devicePixelRatio || 1;
-      if (isNarrow.matches) return Math.min(deviceRatio, lowPower ? 0.8 : 1);
-      return Math.min(deviceRatio, lowPower ? 1 : 1.3);
+    const playbackRate = { value: 1 };
+    const showFallbackImage = (imageIndex: number) => {
+      activeImageIndexRef.current = imageIndex;
+      setActiveImageIndex(imageIndex);
     };
 
-    const cameraAt = (frame: number) => {
-      const stops = isNarrow.matches ? MOBILE_CAMERA_STOPS : CAMERA_STOPS;
-      const nextStopIndex = stops.findIndex((stop) => stop.frame >= frame);
-      const left = stops[Math.max(0, nextStopIndex < 0 ? stops.length - 2 : nextStopIndex - 1)];
-      const right = stops[Math.max(1, nextStopIndex < 0 ? stops.length - 1 : nextStopIndex)];
-      const raw = Math.min(1, Math.max(0, (frame - left.frame) / Math.max(1, right.frame - left.frame)));
-      const eased = isReducedMotion.matches ? raw : raw * raw * (3 - 2 * raw);
-      const motionFactor = isReducedMotion.matches ? 0.25 : 1;
-      return {
-        scale: 1 + (left.scale + (right.scale - left.scale) * eased - 1) * motionFactor,
-        x: (left.x + (right.x - left.x) * eased) * motionFactor,
-        y: (left.y + (right.y - left.y) * eased) * motionFactor,
-      };
-    };
-
-    const smoothRange = (value: number, start: number, end: number) => {
-      const t = Math.max(0, Math.min(1, (value - start) / (end - start)));
-      return t * t * (3 - 2 * t);
-    };
-
-    const requestDraw = () => {
-      if (drawQueued || disposed) return;
-      drawQueued = true;
-      rafRef.current = requestAnimationFrame(() => {
-        drawQueued = false;
-        const source = fallbackActive
-          ? imageCacheRef.current.get(isReducedMotion.matches ? 0 : frameIndexRef.current)
-          : videoReady ? video : null;
-        if (!source || disposed) return;
-        const sourceWidth = fallbackActive ? (source as HTMLImageElement).naturalWidth : video.videoWidth;
-        const sourceHeight = fallbackActive ? (source as HTMLImageElement).naturalHeight : video.videoHeight;
-        if (!sourceWidth || !sourceHeight) return;
-
-        const pixelRatio = getPixelRatio();
-        const bounds = canvas.getBoundingClientRect();
-        const width = Math.max(1, Math.round(bounds.width * pixelRatio));
-        const height = Math.max(1, Math.round(bounds.height * pixelRatio));
-        if (canvas.width !== width || canvas.height !== height) {
-          canvas.width = width;
-          canvas.height = height;
-        }
-
-        const fitScale = Math.max(width / sourceWidth, height / sourceHeight);
-        const sceneScale = fitScale * currentCamera.scale;
-        const scaledWidth = sourceWidth * sceneScale;
-        const scaledHeight = sourceHeight * sceneScale;
-        const x = (width - scaledWidth) / 2 - currentCamera.x * pixelRatio;
-        const y = (height - scaledHeight) / 2 - currentCamera.y * pixelRatio;
-        context.clearRect(0, 0, width, height);
-        context.drawImage(source, x, y, scaledWidth, scaledHeight);
-        // Keep the poster until a decoded sequence frame is drawn to the canvas.
-        if (!sceneReady) {
-          revealScene();
-          if (!sceneReadyNotified) {
-            sceneReadyNotified = true;
-            onSceneReady();
-          }
-        }
-      });
-    };
-
-    const syncVideoToFrame = (frame: number) => {
-      if (!videoReady || !Number.isFinite(video.duration) || video.duration <= 0) return;
-      desiredVideoTime = Math.min(
-        video.duration - 1 / 30,
-        video.duration * Math.max(0, Math.min(LAST_FRAME, frame)) / LAST_FRAME,
-      );
-      if (video.seeking || Math.abs(video.currentTime - desiredVideoTime) < 1 / 30) return;
-      video.currentTime = desiredVideoTime;
-    };
-
-    const onVideoLoaded = () => {
-      if (disposed) return;
-      videoReady = true;
-      video.pause();
-      syncVideoToFrame(frameIndexRef.current);
-      requestDraw();
-    };
-    const onVideoSeeked = () => {
-      if (disposed) return;
-      requestDraw();
-      syncVideoToFrame(frameIndexRef.current);
-    };
-    const onVideoError = () => {
-      if (disposed || fallbackActive) return;
-      videoReady = false;
-      video.pause();
-      fallbackActive = true;
-      ensureFrame(Math.round(frameIndexRef.current));
-    };
-    video.addEventListener('loadeddata', onVideoLoaded);
-    video.addEventListener('seeked', onVideoSeeked);
-    video.addEventListener('error', onVideoError);
-    if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) onVideoLoaded();
-
-    let revealScene = () => {};
-    const ensureFrame = (index: number) => {
-      if (index < 0 || index > LAST_FRAME) return;
-      if (imageCacheRef.current.has(index)) {
-        const image = imageCacheRef.current.get(index);
-        if (image) cacheFrame(index, image);
-        requestDraw();
-        return;
-      }
-      if (loadingFramesRef.current.has(index)) return;
-
-      const image = new Image();
-      image.decoding = 'async';
-      loadingFramesRef.current.add(index);
-      image.onload = () => {
-        loadingFramesRef.current.delete(index);
-        if (disposed) return;
-        cacheFrame(index, image);
-        requestDraw();
-      };
-      image.onerror = () => loadingFramesRef.current.delete(index);
-      image.src = `/slower-sequence-webp/frame_${String(index).padStart(4, '0')}.webp`;
-    };
-
-    const playIntroWhenReady = () => {
-      if (!introAllowed || !sceneReady || introStarted || isReducedMotion.matches || frameIndexRef.current > 0) return;
-      introStarted = true;
-      introTimeline?.play(0);
-    };
-
-    revealScene = () => {
+    const notifyReady = () => {
       if (sceneReady || disposed) return;
       sceneReady = true;
-      requestDraw();
-      if (isReducedMotion.matches) {
-        gsap.set(canvas, { opacity: 0 });
-        gsap.set(loadVeilRef.current, { opacity: 0 });
-        gsap.set(introHero, { opacity: 1, scale: 1, y: 0 });
-        if (posterRef.current) gsap.set(posterRef.current, { opacity: 1 });
+      readyRef.current = true;
+      gsap.set(loadVeilRef.current, { opacity: 0 });
+      if (poster.complete && poster.naturalWidth) playIntroWhenReady();
+      onSceneReady();
+    };
+
+    const selectImageFallback = () => {
+      if (disposed || VIDEO_PREVIEW_ONLY || useImagesRef.current) return;
+      useImagesRef.current = true;
+      setUseImages(true);
+      const coverVeil = section.querySelector<HTMLElement>('[data-cover-veil]');
+      if (coverVeil) coverVeil.style.opacity = String(coverProgress * 0.12);
+      video.pause();
+      const fallbackIndex = decodedImagesRef.current.has(currentImageIndex) ? currentImageIndex : activeImageIndexRef.current;
+      showFallbackImage(fallbackIndex);
+      if (!loadedImagesRef.current.has(currentImageIndex)) {
+        loadedImagesRef.current.add(currentImageIndex);
+        setLoadedImages((current) => current.includes(currentImageIndex) ? current : [...current, currentImageIndex]);
+      }
+      if (decodedImagesRef.current.has(currentImageIndex) || decodedImagesRef.current.has(activeImageIndexRef.current)) fadeVideoToStill();
+      setTimeout(() => {
+        const fallback = document.querySelector<HTMLImageElement>(`[data-fallback-image="${currentImageIndex}"]`);
+        if (fallback?.complete && fallback.naturalWidth) notifyReady();
+      }, 0);
+    };
+
+    const loadImageForSegment = (imageIndex: number) => {
+      currentImageIndex = imageIndex;
+      if (!useImagesRef.current || decodedImagesRef.current.has(imageIndex)) showFallbackImage(imageIndex);
+      if (!loadedImagesRef.current.has(imageIndex)) {
+        loadedImagesRef.current.add(imageIndex);
+        setLoadedImages((current) => current.includes(imageIndex) ? current : [...current, imageIndex]);
+      }
+    };
+
+    const fadeVideoToStill = () => {
+      gsap.to(video, {
+        opacity: 0,
+        duration: 2,
+        ease: 'power2.inOut',
+        onComplete: () => {
+          if (useImagesRef.current) {
+            video.removeAttribute('src');
+            video.load();
+          }
+        },
+      });
+      if (activeImageIndexRef.current === 0) gsap.to(poster, { opacity: 1, duration: 2, ease: 'power2.inOut' });
+    };
+
+    const checkVideoReady = () => {
+      if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+        if (playbackWatchdog !== null) window.clearTimeout(playbackWatchdog);
+        playbackWatchdog = null;
+        if (!useImagesRef.current) {
+          gsap.to(video, { opacity: 1, duration: 0.65, ease: 'power2.out' });
+          gsap.to(poster, { opacity: 0, duration: 0.65, ease: 'power2.out' });
+          notifyReady();
+          if (waitingForInitialVideoReady && segmentRef.current) {
+            waitingForInitialVideoReady = false;
+            segmentRef.current = null;
+            schedulePlayback(getSceneSegment(frameIndexRef.current));
+          }
+        }
+      }
+    };
+
+    const schedulePlayback = (segment: (typeof SCENE_SEGMENTS)[number]) => {
+      if (playbackRejected) return;
+      if (segmentRef.current === segment.id) return;
+      segmentRef.current = segment.id;
+      currentImageIndex = segment.imageIndex;
+      loadImageForSegment(segment.imageIndex);
+      accelerationTween?.kill();
+      accelerationTween = null;
+      decelerationTween?.kill();
+      decelerationTween = null;
+      if (bufferWatchdog !== null) window.clearTimeout(bufferWatchdog);
+      video.pause();
+      if (lowNetwork || useImagesRef.current) return;
+      if (video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
+        bufferWatchdog = window.setTimeout(selectImageFallback, 5000);
         return;
       }
-      if (frameIndexRef.current > 0) {
-        introInterrupted = true;
-        gsap.set(canvas, { opacity: 1 });
-        gsap.set(loadVeilRef.current, { opacity: 0 });
-        if (posterRef.current) gsap.set(posterRef.current, { opacity: 0 });
-        const introProgress = smoothRange(frameIndexRef.current, 0, 45);
-        if (introVeilRef.current) {
-          introVeilRef.current.style.opacity = String(1 - introProgress);
-          const blur = (1 - introProgress) * 12;
-          introVeilRef.current.style.backdropFilter = `blur(${blur}px)`;
-          introVeilRef.current.style.setProperty('-webkit-backdrop-filter', `blur(${blur}px)`);
-        }
-        if (introHero) {
-          introHero.style.opacity = String(1 - introProgress);
-          introHero.style.transform = `translate3d(0, ${-24 * introProgress}px, 0) scale(${1 - 0.2 * introProgress})`;
-          introHero.style.visibility = introProgress < 0.99 ? 'visible' : 'hidden';
-        }
-        return;
+      waitingForInitialVideoReady = false;
+      const currentSeekToken = ++seekToken;
+      const startPlayback = () => {
+        if (disposed || currentSeekToken !== seekToken || segmentRef.current !== segment.id) return;
+        playbackRate.value = 0.25;
+        video.playbackRate = playbackRate.value;
+        void video.play().then(() => {
+          playbackRejected = false;
+          accelerationTween = gsap.to(playbackRate, {
+            value: 1,
+            duration: 0.7,
+            ease: 'power2.out',
+            onUpdate: () => { video.playbackRate = playbackRate.value; },
+            onComplete: () => { accelerationTween = null; },
+          });
+        }).catch(() => {
+          if (segmentRef.current !== segment.id) return;
+          playbackRejected = true;
+          segmentRef.current = null;
+          video.pause();
+        });
+      };
+      video.addEventListener('seeked', startPlayback, { once: true });
+      video.currentTime = segment.startSeconds;
+      if (!video.seeking) {
+        video.removeEventListener('seeked', startPlayback);
+        startPlayback();
       }
-      playIntroWhenReady();
+    };
+
+    const finishSegment = () => {
+      const segment = getSceneSegment(frameIndexRef.current);
+      if (segmentRef.current !== segment.id) return;
+      accelerationTween?.kill();
+      accelerationTween = null;
+      decelerationTween?.kill();
+      decelerationTween = null;
+      video.pause();
+      video.currentTime = segment.endSeconds;
+      video.playbackRate = 1;
+    };
+
+    const monitorVideo = () => {
+      if (disposed || video.paused || useImagesRef.current) return;
+      const segment = getSceneSegment(frameIndexRef.current);
+      if (segmentRef.current !== segment.id) return;
+      const remaining = segment.endSeconds - video.currentTime;
+      if (remaining <= 0.75) {
+        if (!decelerationTween) {
+          decelerationTween = gsap.to(playbackRate, {
+            value: 0.1,
+            duration: 0.65,
+            ease: 'power2.in',
+            onUpdate: () => { video.playbackRate = playbackRate.value; },
+            onComplete: finishSegment,
+          });
+        }
+      } else if (remaining <= 0) {
+        finishSegment();
+      }
+    };
+
+    let monitorFrame = 0;
+    const watchPlayback = () => {
+      monitorVideo();
+      monitorFrame = requestAnimationFrame(watchPlayback);
+    };
+    monitorFrame = requestAnimationFrame(watchPlayback);
+
+    const playIntroWhenReady = () => {
+      if (!introAllowed || !sceneReady || introStarted || reducedMotion || frameIndexRef.current > 0) return;
+      introStarted = true;
+      introTimeline?.play(0);
     };
     const onExperienceReady = () => {
       introAllowed = true;
       playIntroWhenReady();
     };
-
-    const poster = posterRef.current;
-    const onPosterLoaded = () => {
-      if (!poster || disposed) return;
-      if (poster.naturalWidth) cacheFrame(0, poster);
-      requestDraw();
-      if (isReducedMotion.matches) revealScene();
+    const onPosterLoad = () => {
+      if (!poster.naturalWidth) return;
+      decodedImagesRef.current.add(0);
+      setDecodedImages((current) => current.includes(0) ? current : [...current, 0]);
+      if (lowNetwork) notifyReady();
+      else checkVideoReady();
     };
-    const resetAndSettleScene = () => {
-      if (settleTimer !== null) window.clearTimeout(settleTimer);
-      settleTween?.kill();
-      settleState.y = 0;
-      sceneVisualRef.current?.style.setProperty('--scene-settle-y', '0px');
-      if (isReducedMotion.matches) return;
-      settleTimer = window.setTimeout(() => {
-        settleTween = gsap.to(settleState, {
-          y: 8,
-          duration: 0.5,
+    const onVideoReady = () => checkVideoReady();
+    const onVideoError = () => selectImageFallback();
+    const onWaiting = () => {
+      if (bufferWatchdog !== null || useImagesRef.current) return;
+      bufferWatchdog = window.setTimeout(selectImageFallback, 5000);
+    };
+    const onPlaying = () => {
+      playbackRejected = false;
+      if (bufferWatchdog !== null) window.clearTimeout(bufferWatchdog);
+      bufferWatchdog = null;
+    };
+    const retryPlaybackFromGesture = () => {
+      if (!playbackRejected || disposed) return;
+      const segment = getSceneSegment(frameIndexRef.current);
+      playbackRejected = false;
+      segmentRef.current = segment.id;
+      currentImageIndex = segment.imageIndex;
+      loadImageForSegment(segment.imageIndex);
+      accelerationTween?.kill();
+      accelerationTween = null;
+      decelerationTween?.kill();
+      decelerationTween = null;
+      if (bufferWatchdog !== null) window.clearTimeout(bufferWatchdog);
+      bufferWatchdog = null;
+      playbackRate.value = 0.25;
+      video.playbackRate = playbackRate.value;
+      const playRequest = video.play();
+      video.currentTime = segment.startSeconds;
+      void playRequest.then(() => {
+        if (disposed || segmentRef.current !== segment.id) return;
+        accelerationTween = gsap.to(playbackRate, {
+          value: 1,
+          duration: 0.7,
           ease: 'power2.out',
-          onUpdate: () => sceneVisualRef.current?.style.setProperty('--scene-settle-y', `${settleState.y}px`),
+          onUpdate: () => { video.playbackRate = playbackRate.value; },
+          onComplete: () => { accelerationTween = null; },
         });
-      }, 160);
+      }).catch(() => {
+        if (segmentRef.current !== segment.id) return;
+        playbackRejected = true;
+        segmentRef.current = null;
+        video.pause();
+      });
     };
-    window.addEventListener('scroll', resetAndSettleScene, { passive: true });
-    poster?.addEventListener('load', onPosterLoaded);
+    const onFallbackImageLoad = (event: Event) => {
+      const target = event.target as HTMLImageElement;
+      const imageIndex = Number(target.dataset.fallbackImage);
+      if (target.naturalWidth && Number.isInteger(imageIndex)) {
+        decodedImagesRef.current.add(imageIndex);
+        setDecodedImages((current) => current.includes(imageIndex) ? current : [...current, imageIndex]);
+        if (imageIndex === currentImageIndex) {
+          showFallbackImage(imageIndex);
+          if (useImagesRef.current) fadeVideoToStill();
+        }
+      }
+      if (target.naturalWidth && Number(target.dataset.fallbackImage) === currentImageIndex) notifyReady();
+    };
+    const onFallbackImageError = (event: Event) => {
+      const target = event.target as HTMLImageElement;
+      const imageIndex = Number(target.dataset.fallbackImage);
+      if (!useImagesRef.current || !Number.isInteger(imageIndex) || imageIndex !== currentImageIndex) return;
+      const lastVisible = decodedImagesRef.current.has(activeImageIndexRef.current) ? activeImageIndexRef.current : 0;
+      showFallbackImage(lastVisible);
+      if (decodedImagesRef.current.has(lastVisible)) fadeVideoToStill();
+    };
+    poster.addEventListener('load', onPosterLoad);
+    video.addEventListener('loadeddata', onVideoReady);
+    video.addEventListener('canplay', onVideoReady);
+    video.addEventListener('error', onVideoError);
+    video.addEventListener('waiting', onWaiting);
+    video.addEventListener('playing', onPlaying);
+    window.addEventListener('pointerdown', retryPlaybackFromGesture, { passive: true });
+    window.addEventListener('wheel', retryPlaybackFromGesture, { passive: true });
+    window.addEventListener('keydown', retryPlaybackFromGesture);
+    section.addEventListener('load', onFallbackImageLoad, true);
+    section.addEventListener('error', onFallbackImageError, true);
     window.addEventListener('architecture-experience-ready', onExperienceReady);
-    const resizeObserver = new ResizeObserver(requestDraw);
-    resizeObserver.observe(canvas);
+
+    const revealWithImages = () => {
+      if (lowNetwork) {
+        useImagesRef.current = true;
+        setUseImages(true);
+        if (poster.complete && poster.naturalWidth) notifyReady();
+      } else {
+        video.muted = true;
+        video.defaultMuted = true;
+        video.playsInline = true;
+        video.src = SCENE_VIDEO_SOURCE;
+        video.load();
+        playbackWatchdog = window.setTimeout(() => {
+          if (!sceneReady) selectImageFallback();
+        }, 5000);
+      }
+    };
 
     const scrollState = { frame: 0 };
-    let activeScrubDuration = isReducedMotion.matches ? 0.12 : NORMAL_SCRUB_DURATION;
+    const smoothRange = (value: number, start: number, end: number) => {
+      const t = Math.max(0, Math.min(1, (value - start) / (end - start)));
+      return t * t * (3 - 2 * t);
+    };
+    const setCoverVisuals = () => {
+      const coverVeil = section.querySelector<HTMLElement>('[data-cover-veil]');
+      if (coverVeil) coverVeil.style.opacity = String(coverProgress * (useImagesRef.current ? 0.12 : 0.9));
+      scene.style.filter = coverProgress > 0.02 ? `blur(${coverProgress * 12}px)` : 'none';
+    };
+
     const gsapContext = gsap.context(() => {
       introHero = section.querySelector<HTMLElement>('[data-intro-hero]');
       introTimeline = gsap.timeline({ paused: true });
-      // Keep the poster visible while a remounted video is loading. Hiding the
-      // whole scene wrapper here made client-side returns look like a black page.
-      introTimeline.fromTo(sceneVisualRef.current, { scale: 1.08 }, {
-        scale: 1,
-        duration: 1.5,
-        ease: 'power2.out',
-      }, 0);
-      introTimeline.to(canvas, { opacity: 1, duration: 1.5, ease: 'power2.inOut' }, 0);
-      if (posterRef.current) introTimeline.to(posterRef.current, { opacity: 0, duration: 1.5, ease: 'power2.inOut' }, 0);
+      introTimeline.fromTo(scene, { scale: 1.08 }, { scale: 1, duration: 1.5, ease: 'power2.out' }, 0);
+      introTimeline.to(poster, { opacity: 0, duration: 1.5, ease: 'power2.inOut' }, 0);
       introTimeline.fromTo(loadVeilRef.current, { opacity: 0.9 }, { opacity: 0, duration: 1.5, ease: 'power2.inOut' }, 0);
-      // Let the house complete its quiet zoom before introducing the text and veil.
-      introTimeline.to(introVeilRef.current, { opacity: 1, duration: 2, ease: 'power2.inOut' }, isNarrow.matches ? 1.5 : 2.1);
-      introTimeline.to(introHero, {
-        opacity: 1,
-        scale: 1,
-        y: 0,
-        duration: 1.5,
-        ease: 'power3.out',
-      }, isNarrow.matches ? 1.5 : 2.1);
-      if (isReducedMotion.matches) introTimeline.pause(0);
+      introTimeline.to(introVeilRef.current, { opacity: 1, duration: 2, ease: 'power2.inOut' }, window.matchMedia('(max-width: 767px)').matches ? 1.5 : 2.1);
+      introTimeline.fromTo(introHero, { opacity: 0, scale: 0.96, y: 14 }, {
+        opacity: 1, scale: 1, y: 0, duration: 1.5, ease: 'power3.out',
+      }, window.matchMedia('(max-width: 767px)').matches ? 1.5 : 2.1);
+      if (reducedMotion) introTimeline.pause(0);
 
       const timeline = gsap.timeline({
         scrollTrigger: {
@@ -325,69 +363,43 @@ export default function InteractiveCanvasEngine({ videoSource, onSceneReady, chi
           start: 'top top',
           endTrigger: sequenceTrackRef.current,
           end: 'bottom bottom',
-          scrub: activeScrubDuration,
+          scrub: reducedMotion ? 0 : 0.45,
           invalidateOnRefresh: true,
-          onUpdate: (self) => {
-            if (isReducedMotion.matches) return;
-            const targetFrame = self.progress * LAST_FRAME;
-            const nearMilestone = SCROLL_MILESTONES.some(
-              (milestone) => Math.abs(targetFrame - milestone) <= MILESTONE_EASE_RADIUS,
-            );
-            const nextDuration = nearMilestone ? MILESTONE_SCRUB_DURATION : NORMAL_SCRUB_DURATION;
-            if (nextDuration === activeScrubDuration) return;
-            activeScrubDuration = nextDuration;
-            self.getTween()?.duration(nextDuration);
-          },
         },
         onUpdate: () => {
           const frame = scrollState.frame;
-        const progress = frame / LAST_FRAME;
-        currentCamera = isReducedMotion.matches ? { scale: 1, x: 0, y: 0 } : cameraAt(frame);
-        const nextFrame = Math.min(LAST_FRAME, Math.max(0, Math.round(frame)));
-        if (nextFrame !== frameIndexRef.current) {
-          lastDirectionRef.current = nextFrame > frameIndexRef.current ? 1 : -1;
-          frameIndexRef.current = nextFrame;
-        }
-        if (!isReducedMotion.matches && !fallbackActive) syncVideoToFrame(frame);
-        window.dispatchEvent(new CustomEvent('architecture-frame', { detail: frame }));
-        if (fallbackActive) ensureFrame(isReducedMotion.matches ? 0 : nextFrame);
-        if (!isReducedMotion.matches && fallbackActive) {
-          for (let ahead = 1; ahead <= FRAME_PREFETCH_AHEAD; ahead += 1) ensureFrame(nextFrame + ahead * lastDirectionRef.current);
-          for (let behind = 1; behind <= FRAME_PREFETCH_BEHIND; behind += 1) ensureFrame(nextFrame - behind * lastDirectionRef.current);
-        }
-        const coverBlur = contentCoverProgress * (lowPower ? 9 : 14);
-        canvas.style.filter = coverBlur > 0.05 ? `blur(${coverBlur}px)` : 'none';
-        const coverVeil = section.querySelector<HTMLElement>('[data-cover-veil]');
-        if (coverVeil) coverVeil.style.opacity = String(contentCoverProgress * 0.9);
-        sceneVisualRef.current?.style.setProperty('--scene-scale', '1');
-        const blueVeil = section.querySelector<HTMLElement>('[data-blue-veil]');
-        const blueProgress = smoothRange(frame, 157, 180);
-        if (blueVeil) blueVeil.style.opacity = String(blueProgress * 0.12);
-        const introProgress = smoothRange(frame, 0, 45);
-        if (frame > 0 && introStarted && !introInterrupted) {
-          introInterrupted = true;
-          gsap.killTweensOf([canvas, loadVeilRef.current, introVeilRef.current, introHero]);
-          gsap.set(canvas, { opacity: 1 });
-          gsap.set(loadVeilRef.current, { opacity: 0 });
-          if (posterRef.current) gsap.set(posterRef.current, { opacity: 0 });
-        }
-        if (introInterrupted) {
-          if (introVeilRef.current) {
-            const veilOpacity = 1 - introProgress;
-            const veilBlur = (1 - introProgress) * 12;
-            introVeilRef.current.style.opacity = String(veilOpacity);
-            introVeilRef.current.style.backdropFilter = `blur(${veilBlur}px)`;
-            introVeilRef.current.style.setProperty('-webkit-backdrop-filter', `blur(${veilBlur}px)`);
+          const progress = frame / LAST_FRAME;
+          const nextFrame = Math.min(LAST_FRAME, Math.max(0, Math.round(frame)));
+          const nextSegment = getSceneSegment(nextFrame);
+          if (nextFrame !== frameIndexRef.current) frameIndexRef.current = nextFrame;
+          schedulePlayback(nextSegment);
+          window.dispatchEvent(new CustomEvent('architecture-frame', { detail: frame }));
+          const blueVeil = section.querySelector<HTMLElement>('[data-blue-veil]');
+          if (blueVeil) blueVeil.style.opacity = String(smoothRange(frame, 157, 180) * 0.12);
+          const introProgress = smoothRange(frame, 0, 45);
+          if (frame > 0 && introStarted && !introInterrupted) {
+            introInterrupted = true;
+            gsap.killTweensOf([scene, loadVeilRef.current, introVeilRef.current, introHero]);
+            gsap.set(loadVeilRef.current, { opacity: 0 });
+            gsap.set(poster, { opacity: 0 });
+            if (!useImagesRef.current) gsap.set(video, { opacity: 1 });
           }
-          if (introHero) {
-            introHero.style.opacity = String(1 - introProgress);
-            introHero.style.transform = `translate3d(0, ${-24 * introProgress}px, 0) scale(${1 - 0.2 * introProgress})`;
-            introHero.style.visibility = introProgress < 0.99 ? 'visible' : 'hidden';
+          if (introInterrupted) {
+            if (introVeilRef.current) {
+              const veilOpacity = 1 - introProgress;
+              const veilBlur = (1 - introProgress) * 12;
+              introVeilRef.current.style.opacity = String(veilOpacity);
+              introVeilRef.current.style.backdropFilter = `blur(${veilBlur}px)`;
+              introVeilRef.current.style.setProperty('-webkit-backdrop-filter', `blur(${veilBlur}px)`);
+            }
+            if (introHero) {
+              introHero.style.opacity = String(1 - introProgress);
+              introHero.style.transform = `translate3d(0, ${-24 * introProgress}px, 0) scale(${1 - 0.2 * introProgress})`;
+              introHero.style.visibility = introProgress < 0.99 ? 'visible' : 'hidden';
+            }
           }
-        }
-        section.style.setProperty('--journey-progress', String(progress));
-        requestDraw();
-      },
+          section.style.setProperty('--journey-progress', String(progress));
+        },
       });
       timeline.to(scrollState, { frame: LAST_FRAME, duration: 1, ease: 'none' }, 0);
 
@@ -399,52 +411,79 @@ export default function InteractiveCanvasEngine({ videoSource, onSceneReady, chi
           scrub: 0.6,
           invalidateOnRefresh: true,
           onUpdate: (self) => {
-            contentCoverProgress = self.progress;
-            const coverBlur = contentCoverProgress * (lowPower ? 9 : 14);
-            canvas.style.filter = coverBlur > 0.05 ? `blur(${coverBlur}px)` : 'none';
-            const coverVeil = section.querySelector<HTMLElement>('[data-cover-veil]');
-            if (coverVeil) coverVeil.style.opacity = String(contentCoverProgress * 0.9);
+            coverProgress = self.progress;
+            setCoverVisuals();
           },
         });
       }
     }, section);
 
-    requestDraw();
-    if (poster?.complete) onPosterLoaded();
-    if (isReducedMotion.matches) fallbackActive = true;
+    if (poster.complete) onPosterLoad();
+    revealWithImages();
+    schedulePlayback(getSceneSegment(0));
     window.dispatchEvent(new CustomEvent('architecture-frame', { detail: 0 }));
     return () => {
       disposed = true;
       gsapContext.revert();
-      resizeObserver.disconnect();
-      poster?.removeEventListener('load', onPosterLoaded);
-      video.removeEventListener('loadeddata', onVideoLoaded);
-      video.removeEventListener('seeked', onVideoSeeked);
+      poster.removeEventListener('load', onPosterLoad);
+      video.removeEventListener('loadeddata', onVideoReady);
+      video.removeEventListener('canplay', onVideoReady);
       video.removeEventListener('error', onVideoError);
-      video.pause();
+      video.removeEventListener('waiting', onWaiting);
+      video.removeEventListener('playing', onPlaying);
+      window.removeEventListener('pointerdown', retryPlaybackFromGesture);
+      window.removeEventListener('wheel', retryPlaybackFromGesture);
+      window.removeEventListener('keydown', retryPlaybackFromGesture);
+      section.removeEventListener('load', onFallbackImageLoad, true);
+      section.removeEventListener('error', onFallbackImageError, true);
       window.removeEventListener('architecture-experience-ready', onExperienceReady);
-      window.removeEventListener('scroll', resetAndSettleScene);
-      if (settleTimer !== null) window.clearTimeout(settleTimer);
-      settleTween?.kill();
-      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
-      imageCache.clear();
+      if (playbackWatchdog !== null) window.clearTimeout(playbackWatchdog);
+      if (bufferWatchdog !== null) window.clearTimeout(bufferWatchdog);
+      decelerationTween?.kill();
+      accelerationTween?.kill();
+      cancelAnimationFrame(monitorFrame);
+      video.pause();
     };
   }, [onSceneReady]);
 
   useEffect(() => {
-    const video = videoRef.current;
-    if (!video || !videoSource) return;
-    video.pause();
-    video.load();
-  }, [videoSource]);
+    if (!useImages || !loadedImages.includes(0)) return;
+    const firstImage = posterRef.current;
+    if (firstImage?.complete && firstImage.naturalWidth && !readyRef.current) {
+      readyRef.current = true;
+      gsap.to(loadVeilRef.current, { opacity: 0, duration: 0.6 });
+      onSceneReady();
+    }
+  }, [loadedImages, onSceneReady, useImages]);
 
   return (
     <section ref={sectionRef} className="journey-section relative bg-[#080808]" aria-label="Scroll through the architectural sequence">
       <div className="sticky top-0 h-screen h-[100svh] w-full overflow-hidden bg-[#080808]">
-        <div ref={sceneVisualRef} className="architectural-scene-visual absolute -inset-3">
-          <img ref={posterRef} src="/slower-sequence-webp/frame_0000.webp" alt="" aria-hidden="true" fetchPriority="high" decoding="async" className="pointer-events-none absolute inset-0 z-10 h-full w-full object-cover" />
-          <video ref={videoRef} src={videoSource ?? undefined} muted playsInline preload="auto" aria-hidden="true" className="pointer-events-none absolute inset-0 h-full w-full opacity-0" />
-          <canvas ref={canvasRef} className="absolute inset-0 z-[11] block h-full w-full object-cover opacity-0 will-change-transform" aria-label="Scroll-controlled architectural video" />
+        <div ref={sceneVisualRef} className={`architectural-scene-visual absolute -inset-3 ${useImages ? 'scene-fallback-surface' : ''}`}>
+          {SCENE_FALLBACK_IMAGES.map((src, index) => loadedImages.includes(index) ? (
+            <Image
+              key={src}
+              ref={index === 0 ? posterRef : undefined}
+              data-fallback-image={index}
+              src={src}
+              fill
+              sizes="100vw"
+              alt=""
+              aria-hidden="true"
+              priority={index === 0}
+              loading={index === 0 ? 'eager' : 'lazy'}
+              decoding="async"
+              className={`pointer-events-none object-cover transition-opacity duration-[12000ms] ease-in-out motion-reduce:duration-0 ${useImages ? 'scene-fallback-image-active' : ''} ${currentImageClass(index, useImages, activeImageIndex, decodedImages.includes(index))}`}
+            />
+          ) : null)}
+          <video
+            ref={videoRef}
+            muted
+            playsInline
+            preload="none"
+            aria-hidden="true"
+            className="scene-chapter-video pointer-events-none absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-500"
+          />
         </div>
         <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-b from-[#080808]/30 via-transparent to-[#080808]/55" />
         <div ref={loadVeilRef} aria-hidden="true" className="pointer-events-none absolute inset-0 z-[13] bg-black opacity-90" />
@@ -466,4 +505,8 @@ export default function InteractiveCanvasEngine({ videoSource, onSceneReady, chi
       </div>
     </section>
   );
+}
+
+function currentImageClass(index: number, useImages: boolean, activeImageIndex: number, decoded: boolean) {
+  return useImages && index === activeImageIndex && decoded ? 'z-[11] opacity-100' : 'z-0 opacity-0';
 }

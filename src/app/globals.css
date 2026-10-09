@@ -312,6 +312,22 @@ body {
   will-change: transform;
 }
 
+.scene-fallback-image-active {
+  filter: blur(12px) saturate(0.88);
+  animation: scene-fallback-drift 38s ease-in-out infinite alternate;
+  transform-origin: center;
+  will-change: transform, opacity;
+}
+
+.scene-fallback-surface {
+  background: radial-gradient(ellipse at 50% 42%, #30383d 0%, #22292e 58%, #171d21 100%);
+}
+
+@keyframes scene-fallback-drift {
+  from { transform: scale(1.08) translate3d(-1.2%, 0.35%, 0); }
+  to { transform: scale(1.13) translate3d(1.2%, -0.35%, 0); }
+}
+
 .technical-label {
   font-family: "Manrope", "Segoe UI", sans-serif;
   font-variant-numeric: tabular-nums;
@@ -399,6 +415,12 @@ a:focus-visible {
   .privacy-consent-overlay,
   .privacy-consent-card {
     animation: none !important;
+  }
+
+  .scene-fallback-image-active {
+    animation: none !important;
+    transform: scale(1.08);
+    will-change: auto;
   }
 }
 
