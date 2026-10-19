@@ -29,10 +29,11 @@ export default function TypographyLayer() {
 
   useEffect(() => {
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const blocks = layerRef.current ? Array.from(layerRef.current.querySelectorAll<HTMLElement>('[data-story-block]')) : [];
+
     const update = (event: Event) => {
       const frame = (event as CustomEvent<number>).detail as number;
-      const blocks = layerRef.current?.querySelectorAll<HTMLElement>('[data-story-block]');
-      if (!blocks) return;
+      if (blocks.length === 0) return;
       checkpoints.forEach((checkpoint, index) => {
         const element = blocks[index];
         if (!element) return;
@@ -49,7 +50,6 @@ export default function TypographyLayer() {
         element.style.visibility = opacity > 0.01 ? 'visible' : 'hidden';
         element.setAttribute('aria-hidden', String(opacity <= 0.01));
       });
-
     };
     window.addEventListener('architecture-frame', update);
     return () => window.removeEventListener('architecture-frame', update);

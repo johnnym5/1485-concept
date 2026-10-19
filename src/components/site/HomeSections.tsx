@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { SiteFooter } from './SiteChrome';
 import { PageMotion } from './SiteMotion';
+import ImageScrollGallery from './ImageScrollGallery';
 
 const services = [
   {
@@ -60,6 +61,8 @@ export default function HomeSections() {
           </div>
         </div>
       </section>
+
+      <ImageScrollGallery />
 
       <section className="bg-[#0B1014]/95 px-5 py-24 sm:px-8 sm:py-32">
         <div className="mx-auto grid max-w-7xl gap-12 md:grid-cols-[0.9fr_1.1fr] md:gap-24">
