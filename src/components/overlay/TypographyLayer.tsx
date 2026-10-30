@@ -6,16 +6,16 @@ const checkpoints = [
   {
     start: 46,
     end: 110,
-    title: 'FACADE ARTICULATION',
-    subtitle: 'Projecting glazed bays · Timber and masonry finishes',
-    kicker: '14.85 / BUILDING ENVELOPE',
+    title: 'STRUCTURAL INTEGRITY',
+    subtitle: 'We approach construction with a focus on workmanship, quality control and effective project coordination.',
+    kicker: '14.85 / BUILDING CONSTRUCTION',
   },
   {
     start: 111,
     end: 180,
-    title: 'REINFORCED CONCRETE FRAME',
-    subtitle: 'Column–beam structure · Slab and reinforcement sequence',
-    kicker: '14.85 / STRUCTURAL SYSTEM',
+    title: 'DEVELOPMENT WITH PURPOSE',
+    subtitle: 'We consider land, design, construction, functionality and market needs together to shape lasting value.',
+    kicker: '14.85 / PROPERTY DEVELOPMENT',
   },
 ];
 
