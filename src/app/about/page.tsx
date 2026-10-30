@@ -5,7 +5,7 @@ import { canonicalUrl } from '@/lib/site';
 
 export const metadata: Metadata = {
   title: 'About',
-  description: 'A design-led architecture practice with engineering coordination at the table from the start.',
+  description: 'Meet 14.85 Concepts, an Abuja-based architecture, construction and built-environment company focused on thoughtful design and enduring spaces.',
   alternates: canonicalUrl('/about') ? { canonical: canonicalUrl('/about') } : undefined,
 };
 
@@ -14,25 +14,70 @@ export default function AboutPage() {
     <ContentLayout motion="about">
       <section className="mx-auto max-w-7xl px-5 pb-24 pt-16 sm:px-8 sm:pb-32 sm:pt-24">
         <div data-motion-reveal><PageEyebrow>14.85 / About</PageEyebrow></div>
-        <div data-motion-reveal><PageTitle>Good design begins with understanding what a project needs to become.</PageTitle></div>
+        <div data-motion-reveal><PageTitle>Building ideas. Creating spaces. Shaping the future.</PageTitle></div>
         <div className="mt-12 grid gap-10 border-t border-white/15 pt-8 sm:mt-16 sm:pt-12 md:grid-cols-[0.7fr_1.3fr] md:gap-24">
-          <p data-motion-reveal className="technical-label text-[10px] text-[#C5A059]">Form · Function · Execution</p>
+          <p data-motion-reveal className="technical-label text-[10px] text-[#C5A059]">Abuja, Nigeria · International enquiries</p>
           <div data-motion-reveal data-motion-delay="0.08" className="max-w-3xl space-y-6 text-sm leading-8 text-white/70 sm:text-base sm:leading-9">
-            <p>14.85 Concept Limited brings spatial design and engineering coordination into one project conversation. We define the brief, examine the site and programme, and develop architectural direction with structural and technical parameters in view.</p>
-            <p>Across commercial and residential briefs, design decisions are considered in relation to form, function, tolerances, and execution. Our work begins with the conditions of each project and the requirements it must resolve.</p>
+            <p>14.85 Concepts is an Abuja-based architecture, construction and built-environment company. We bring design thinking, technical coordination and construction expertise together to shape spaces that are functional, considered and made to endure.</p>
+            <p>From architectural design and interiors to construction, renovation, project management and property development, we begin by understanding the brief, the site, the budget and what the project needs to achieve. That understanding guides decisions from early planning through delivery.</p>
+            <p>We work with residential and commercial clients in Nigeria and welcome enquiries from clients based internationally. Each engagement is shaped around its scope, context and requirements.</p>
           </div>
         </div>
-        <div className="mt-20 grid gap-8 border-t border-white/15 pt-8 sm:mt-28 sm:grid-cols-3 sm:pt-10">
-          {[
-            ['Clarity', 'Make the purpose, constraints, and priorities of a project easier to see.'],
-            ['Coordination', 'Keep architectural intent connected to technical input as the design develops.'],
-            ['Consideration', 'Shape decisions around how a place needs to work and feel.'],
-          ].map(([title, text], index) => (
-            <article key={title} data-motion-reveal data-motion-delay={String(index * 0.1)}>
-              <h2 className="font-editorial text-3xl text-[#F4F4F0]">{title}</h2>
-              <p className="mt-3 text-sm leading-7 text-white/60">{text}</p>
-            </article>
-          ))}
+        <div className="mt-20 grid gap-10 border-t border-white/15 pt-8 sm:mt-28 sm:grid-cols-2 sm:pt-10 sm:gap-16">
+          <article data-motion-reveal>
+            <p className="technical-label mb-4 text-[10px] text-[#C5A059]">Our vision</p>
+            <h2 className="font-editorial text-3xl leading-tight text-[#F4F4F0]">A built environment shaped by design, technical care and lasting quality.</h2>
+            <p className="mt-4 max-w-xl text-sm leading-7 text-white/60">We aim to contribute to Nigeria’s built environment and grow our work across international markets through thoughtful design and dependable project delivery.</p>
+          </article>
+          <article data-motion-reveal data-motion-delay="0.08">
+            <p className="technical-label mb-4 text-[10px] text-[#C5A059]">Our mission</p>
+            <h2 className="font-editorial text-3xl leading-tight text-[#F4F4F0]">Turn client aspirations into functional, compelling and enduring spaces.</h2>
+            <p className="mt-4 max-w-xl text-sm leading-7 text-white/60">We do this through considered planning, technical coordination, responsible construction practices and a client-centred process.</p>
+          </article>
+        </div>
+        <div className="mt-20 border-t border-white/15 pt-8 sm:mt-28 sm:pt-10">
+          <div data-motion-reveal className="mb-8 max-w-2xl">
+            <p className="technical-label mb-4 text-[10px] text-[#C5A059]">What guides the work</p>
+            <h2 className="font-editorial text-4xl text-[#F4F4F0]">Principles we bring to each brief.</h2>
+          </div>
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+            {[
+              ['Integrity and accountability', 'Be clear about commitments and responsible in the decisions made along the way.'],
+              ['Design excellence', 'Make each space intentional, balancing creative direction with function and detail.'],
+              ['Quality and craft', 'Give care to specifications, materials and execution throughout the work.'],
+              ['Innovation', 'Use thoughtful design and practical methods to respond to changing needs.'],
+              ['Client-centred service', 'Listen carefully, communicate clearly and shape solutions around each brief.'],
+              ['Sustainability and responsibility', 'Consider resource use, environmental conditions and long-term performance where the project allows.'],
+            ].map(([title, text], index) => (
+              <article key={title} data-motion-reveal data-motion-delay={String(index * 0.04)} className="border-t border-white/15 pt-5">
+                <h3 className="font-editorial text-2xl text-[#F4F4F0]">{title}</h3>
+                <p className="mt-3 text-sm leading-7 text-white/60">{text}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+        <div className="mt-20 border-t border-white/15 pt-8 sm:mt-28 sm:pt-10">
+          <div data-motion-reveal className="mb-8 max-w-2xl">
+            <p className="technical-label mb-4 text-[10px] text-[#C5A059]">From vision to delivery</p>
+            <h2 className="font-editorial text-4xl text-[#F4F4F0]">A clear path through the work.</h2>
+          </div>
+          <div className="grid gap-px border border-white/10 bg-white/10 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              ['01', 'Consultation', 'Understand the vision, site, intended use, budget and priorities.'],
+              ['02', 'Concept and planning', 'Set a design direction around function, context and feasibility.'],
+              ['03', 'Design coordination', 'Develop the design and coordinate relevant technical considerations.'],
+              ['04', 'Project preparation', 'Clarify scope, timelines, resources and implementation needs.'],
+              ['05', 'Execution', 'Coordinate delivery with care for specifications, workmanship and site requirements.'],
+              ['06', 'Quality review', 'Monitor progress against agreed requirements and milestones.'],
+              ['07', 'Completion', 'Review the agreed deliverables and coordinate handover.'],
+            ].map(([number, title, text]) => (
+              <article key={number} data-motion-reveal className="bg-[#080808] p-5 sm:p-6">
+                <p className="technical-label text-[10px] text-[#C5A059]">{number}</p>
+                <h3 className="mt-5 font-editorial text-2xl text-[#F4F4F0]">{title}</h3>
+                <p className="mt-3 text-sm leading-7 text-white/60">{text}</p>
+              </article>
+            ))}
+          </div>
         </div>
         <Link data-motion-reveal href="/contact" className="quiet-interaction mt-16 inline-flex min-h-12 items-center border border-[#C5A059]/70 px-5 text-[10px] uppercase tracking-[0.18em] text-[#F4F4F0] hover:bg-[#C5A059] hover:text-[#080808]">Start a conversation</Link>
       </section>

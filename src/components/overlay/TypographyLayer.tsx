@@ -63,11 +63,14 @@ export default function TypographyLayer() {
         style={{ opacity: 0, transform: 'translate3d(0, 20px, 0) scale(0.8)', visibility: 'visible' }}
         aria-hidden="true"
       >
+        <p className="mb-4 font-sans text-[9px] uppercase tracking-[0.16em] text-[#C5A059] sm:mb-6 sm:text-xs sm:tracking-[0.24em]">
+          Architecture · Construction · Design · Development
+        </p>
         <h1 className="font-editorial text-balance text-[clamp(2.15rem,9.2vw,4.5rem)] font-normal uppercase leading-[0.96] tracking-[0.035em] text-[#F4F4F0] sm:text-7xl md:text-8xl lg:text-9xl">
-          14.<span className="text-[#C5A059]">85</span> CONCEPT
+          14.<span className="text-[#C5A059]">85</span> CONCEPTS
         </h1>
         <p className="mx-auto mt-3 max-w-2xl font-sans text-xs font-light tracking-wide text-[#F4F4F0]/90 sm:mt-5 sm:text-base md:mt-7 md:text-xl">
-          Engineered for Permanence. <span className="text-[#C5A059]">Precision Execution.</span>
+          Thoughtfully designed. <span className="text-[#C5A059]">Professionally executed. Built to endure.</span>
         </p>
       </div>
       {checkpoints.map((checkpoint) => (

@@ -8,20 +8,23 @@ import './globals.css';
 export const metadata: Metadata = {
   metadataBase: siteOrigin,
   title: {
-    default: '14.85 Concept Limited — Architecture & Engineering',
+    default: '14.85 Concepts — Architecture, Construction & Development',
     template: '%s | 14.85 Concept Limited',
   },
-  description: 'Architecture-led design and coordinated engineering for commercial, residential, hospitality, and mixed-use projects.',
+  description: 'Architecture, construction, interiors and property development from Abuja, Nigeria. Thoughtfully designed, professionally coordinated and built to endure.',
   applicationName: '14.85 Concept Limited',
   category: 'architecture and engineering',
   keywords: [
     '14.85 Concept Limited',
-    'architecture and engineering',
+    'architecture and construction in Abuja',
+    'building construction in Nigeria',
     'architectural design',
-    'engineering coordination',
+    'interior design',
+    'construction project management',
+    'property development',
     'commercial architecture',
     'residential architecture',
-    'hospitality design',
+    'international architectural design consultancy',
   ],
   robots: { index: true, follow: true },
   icons: {
@@ -32,7 +35,7 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'en_NG',
     siteName: '14.85 Concept Limited',
-    images: [{ url: '/opengraph-image.png', width: 1200, height: 630, alt: '14.85 Concept Limited — Architecture and Engineering' }],
+    images: [{ url: '/opengraph-image.png', width: 1200, height: 630, alt: '14.85 Concepts — Architecture, Construction and Development' }],
   },
   twitter: {
     card: 'summary_large_image',

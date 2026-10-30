@@ -87,7 +87,7 @@ export default function RfqForm({ animated = false }: { animated?: boolean }) {
             minLength={2}
             maxLength={120}
             className="quiet-interaction mt-0.5 min-h-8 w-full rounded-lg border border-white/20 bg-white/[0.055] px-2.5 text-xs text-[#F4F4F0] outline-none placeholder:text-white/40 focus:border-[#C5A059] sm:mt-2 sm:min-h-12 sm:rounded-xl sm:px-3.5 sm:text-base"
-            placeholder="City and state"
+            placeholder="City, state or country"
           />
         </label>
       </div>

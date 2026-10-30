@@ -5,7 +5,7 @@ import { canonicalUrl } from '@/lib/site';
 
 export const metadata: Metadata = {
   title: 'Contact',
-  description: 'Share an early project brief with 14.85 Concept Limited. We aim to respond within two business days.',
+  description: 'Discuss an architecture, construction, interiors or development project with 14.85 Concepts in Abuja, Nigeria. International enquiries welcome.',
   alternates: canonicalUrl('/contact') ? { canonical: canonicalUrl('/contact') } : undefined,
 };
 
@@ -16,7 +16,7 @@ export default function ContactPage() {
         <div data-motion-reveal className="lg:sticky lg:top-12 lg:h-fit">
           <PageEyebrow>14.85 / Project brief</PageEyebrow>
           <h1 className="font-editorial text-[clamp(2.25rem,6vw,5.5rem)] leading-[0.98] text-[#F4F4F0]">Define the opportunity.</h1>
-          <p className="mt-5 max-w-lg text-xs leading-6 text-white/65 sm:mt-6 sm:text-base sm:leading-8">Share the site, programme, project stage, and primary design or technical considerations. We aim to respond within two business days.</p>
+          <p className="mt-5 max-w-lg text-xs leading-6 text-white/65 sm:mt-6 sm:text-base sm:leading-8">Tell us what you are planning, where the project is based, its current stage and the support you need. We welcome enquiries from Nigeria and international clients and aim to respond within two business days.</p>
           <p className="mt-10 border-t border-white/15 pt-5 text-[10px] uppercase tracking-[0.18em] text-white/45">Commercial · Residential · Hospitality · Mixed-use</p>
         </div>
         <div data-motion-reveal className="frosted-copy frosted-glass-card rounded-2xl border p-4 shadow-2xl sm:p-8 md:p-10">

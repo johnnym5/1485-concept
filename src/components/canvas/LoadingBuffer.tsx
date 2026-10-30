@@ -26,6 +26,7 @@ export default function LoadingBuffer({ children }: { children: ReactNode }) {
   const messageIntervalRef = useRef<number | null>(null);
   const fallbackStartedRef = useRef(false);
   const brandPlaybackStartedRef = useRef(false);
+  const hasSeenIntroRef = useRef(false);
   const finishBrandIntro = useCallback(() => {
     setBrandReady(true);
     try {
@@ -48,6 +49,21 @@ export default function LoadingBuffer({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     setProgress(88);
+    try {
+      hasSeenIntroRef.current = window.sessionStorage.getItem('1485-home-intro-seen') === '1';
+    } catch {
+      hasSeenIntroRef.current = false;
+    }
+    if (hasSeenIntroRef.current) {
+      fallbackStartedRef.current = true;
+      brandPlaybackStartedRef.current = true;
+      setBrandMode('logo');
+      // Returning to Home gets a short logo card instead of replaying the intro film.
+      brandTimerRef.current = window.setTimeout(() => {
+        setBrandReady(true);
+        brandTimerRef.current = null;
+      }, 700);
+    }
     setIntroModeResolved(true);
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) setExperiencePrepared(true);
     return () => {
@@ -137,11 +153,11 @@ export default function LoadingBuffer({ children }: { children: ReactNode }) {
         >
           <div className={`flex flex-col items-center gap-5 transition-[opacity,transform] duration-[2000ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:duration-300 ${isLeaving ? 'scale-[1.16] opacity-0' : 'scale-100 opacity-100'}`}>
             {brandMode === 'text' && (
-              <div className="text-center" aria-label="14.85 Concept">
+              <div className="text-center" aria-label="14.85 Concepts">
                 <p className="font-editorial text-[clamp(2rem,8vw,3.5rem)] tracking-[0.08em] text-[#F4F4F0]">
-                  14.<span className="text-[#C5A059]">85</span> CONCEPT
+                  14.<span className="text-[#C5A059]">85</span> CONCEPTS
                 </p>
-                <p className="mt-3 font-sans text-[10px] uppercase tracking-[0.25em] text-white/55">Architecture · Engineering</p>
+                <p className="mt-3 font-sans text-[10px] uppercase tracking-[0.25em] text-white/55">Architecture · Construction · Development</p>
               </div>
             )}
             {brandMode !== 'text' && (

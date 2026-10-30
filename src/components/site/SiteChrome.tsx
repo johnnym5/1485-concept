@@ -14,10 +14,10 @@ export function SiteHeader() {
     <header className="frosted-site-header fixed inset-x-3 top-3 z-[90] mx-auto box-border flex w-auto max-w-[calc(100vw-1.5rem)] items-center justify-between gap-3 rounded-2xl border border-white/10 px-3 py-2.5 sm:inset-x-8 sm:top-7 sm:max-w-[calc(100vw-4rem)] sm:px-5 sm:py-3">
       <Link href="/" aria-label="14.85 Concept Limited home" className="relative z-[100] flex shrink-0 items-center gap-2 sm:gap-3">
         <img src="/brand/1485-emblem.webp" alt="" className="h-8 w-8 object-contain sm:h-12 sm:w-12" />
-        <span className="font-sans text-[9px] uppercase leading-relaxed tracking-[0.14em] text-[#F4F4F0] sm:text-[11px] sm:tracking-[0.22em]">
-          <span className="sm:hidden">14.85 Concept</span>
-          <span className="hidden sm:inline">14.85 Concept Limited</span>
-          <span className="hidden text-[8px] tracking-[0.16em] text-[#F4F4F0]/60 sm:block sm:text-[9px]">Architecture · Engineering</span>
+          <span className="font-sans text-[9px] uppercase leading-relaxed tracking-[0.14em] text-[#F4F4F0] sm:text-[11px] sm:tracking-[0.22em]">
+          <span className="sm:hidden">14.85 Concepts</span>
+          <span className="hidden sm:inline">14.85 Concepts</span>
+          <span className="hidden text-[8px] tracking-[0.16em] text-[#F4F4F0]/60 sm:block sm:text-[9px]">Architecture · Construction · Development</span>
         </span>
       </Link>
       <div className="flex min-w-0 items-center gap-2 sm:gap-5">
@@ -46,9 +46,9 @@ export function SiteFooter() {
           <div>
             <Link href="/" aria-label="14.85 Concept Limited home" className="inline-flex items-center gap-3">
               <img src="/brand/1485-emblem.webp" alt="" className="h-11 w-11 object-contain" />
-              <span className="text-[10px] uppercase leading-relaxed tracking-[0.2em] text-[#F4F4F0]">14.85 Concept Limited<span className="block text-[9px] tracking-[0.16em] text-white/45">Architecture · Engineering</span></span>
+              <span className="text-[10px] uppercase leading-relaxed tracking-[0.2em] text-[#F4F4F0]">14.85 Concepts<span className="block text-[9px] tracking-[0.16em] text-white/45">Architecture · Construction · Development</span></span>
             </Link>
-            <p className="mt-6 max-w-sm text-sm leading-7 text-white/55">Spatial design and coordinated technical thinking, shaped around the brief, the site, and the requirements of execution.</p>
+          <p className="mt-6 max-w-sm text-sm leading-7 text-white/55">Architecture, construction and purposeful development—shaped around the brief and carried through with care.</p>
           </div>
           <FooterColumn title="Explore" links={[
             ['Home', '/'], ['Core capabilities', '/services'], ['Practice', '/about'], ['Selected work', '/projects'],
@@ -62,7 +62,7 @@ export function SiteFooter() {
         </div>
         <div className="flex flex-col gap-3 pt-6 text-[9px] uppercase tracking-[0.15em] text-white/40 sm:flex-row sm:items-center sm:justify-between sm:text-[10px]">
           <span>© {new Date().getFullYear()} 14.85 Concept Limited</span>
-          <span>Architecture · Engineering</span>
+          <span>Architecture · Construction · Development</span>
           <Link href="/contact" className="quiet-interaction w-fit text-[#C5A059] hover:text-[#F4F4F0]">Discuss your project <span aria-hidden="true">↗</span></Link>
         </div>
       </div>
