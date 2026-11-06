@@ -10,9 +10,9 @@ Use GSAP with `@gsap/react` and `ScrollTrigger` for the opening, route transitio
 
 ## Opening and in-session prefetch
 
-- On a tab’s first visit, show a viewport-covering, dark logo intro. Reveal the existing 14.85 emblem and wordmark with a soft fade, blur, and small scale settle; then clear the veil to reveal the current page.
+- On a tab’s first visit, show a viewport-covering, dark logo intro. Reveal the existing 14.85 emblem and wordmark with a soft fade, blur, small upward slide, and scale settle; then clear the veil to reveal the current page.
 - Run the intro once per tab session. Returning to the site in the same tab skips the intro.
-- Keep the existing landing hero image’s 1.5-second blur, brightness, and scale settle. Coordinate the intro so the effect resolves into the hero instead of replaying or flashing.
+- Keep the existing landing hero image’s 1.5-second blur, brightness, and scale settle. Coordinate the intro so the effect resolves into the hero instead of replaying or flashing. Fade and slide the hero copy in gently as the intro clears.
 - While the logo is visible, start best-effort Next.js prefetching for `/`, `/services`, `/about`, `/projects`, `/contact`, `/privacy`, `/terms`, `/cookies`, and `/subprocessors`, plus the small optimized WebP derivatives in the image manifest. Prefetch continues after the intro if necessary; it never delays page interaction or claims offline availability.
 - Avoid speculative image downloads when the browser reports Data Saver or a slow 2G connection. If that network information is unavailable, proceed with low-priority prefetching.
 - Provide a visible, keyboard-accessible skip control. Bypass the intro for `prefers-reduced-motion: reduce`, missing client-side storage, or script failure.
@@ -43,7 +43,7 @@ Use GSAP with `@gsap/react` and `ScrollTrigger` for the opening, route transitio
 
 ## Acceptance criteria
 
-1. A first visit to a tab displays the short logo intro and the current page; the intro does not replay on same-tab navigation or return to the home route.
+1. A first visit to a tab displays the short logo intro and gently slides/fades the opening hero copy into view; the intro does not replay on same-tab navigation or return to the home route.
 2. Route prefetch begins during the intro and continues independently; navigating to primary routes uses client-side navigation when possible.
 3. Internal route transitions fade and blur through near-black; back/forward navigation enters with the same treatment. Hash and external navigation work normally.
 4. Scrolling keeps content near the viewport center sharp while content above and below softens gradually but remains readable. Reverse scrolling restores focus smoothly.
