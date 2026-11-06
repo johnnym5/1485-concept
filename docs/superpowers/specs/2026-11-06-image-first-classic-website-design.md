@@ -18,7 +18,7 @@ Redesign the landing page as the entry point to a conventional, image-led archit
 
 ## Landing page structure
 
-1. **Hero:** A broad, static residential image with a dark legibility overlay, the company’s positioning, and clear links to Services and Contact. Use the landscaped two-storey home render as the initial hero candidate; verify crop and image quality at mobile and desktop sizes.
+1. **Hero:** A broad, static residential image with a dark legibility overlay, the company’s positioning, and clear links to Services and Contact. Use `render-aerial-residential-home.jpg` as the initial hero candidate; verify crop and image quality at mobile and desktop sizes.
 2. **Practice introduction:** Short company introduction paired with a construction or residential image, linking to About.
 3. **Services overview:** Six current capability cards. Use restrained image support where an asset clearly represents the service; avoid forcing a separate image into every small card.
 4. **Selected imagery / work:** A responsive editorial grid from the supplied renders and construction photos. Treat these as company imagery or concepts unless project identity, completion status, location, and publication approval are verified. Do not invent client names, project facts, or outcomes.
@@ -28,7 +28,7 @@ Redesign the landing page as the entry point to a conventional, image-led archit
 
 ## Image use by route
 
-- `/`: landscaped two-storey render for the hero; selected home renders and construction photographs in the practice, service, and imagery sections.
+- `/`: residential render for the hero; selected home renders and construction photographs in the practice, service, and imagery sections.
 - `/services`: construction progress and foundation photographs alongside relevant service groups; residential renders for design/development services.
 - `/about`: neighborhood aerial or a representative completed-looking residential render, clearly presented as illustrative company imagery rather than a confirmed project claim.
 - `/projects`: image-led grid using the supplied renders and construction photographs. Until case-study details are approved, label this as selected imagery / design and construction work; do not imply every render is a completed commission.
@@ -36,7 +36,7 @@ Redesign the landing page as the entry point to a conventional, image-led archit
 - `/privacy`, `/cookies`, `/terms`, `/subprocessors`: retain text-first legal layouts. If a shared image header is used, keep it small, decorative, and outside the legal reading column; skip it if it harms legibility or adds no value.
 - `/not-found`: keep the error page simple; no image is required.
 
-The logo and dated promotional graphics are not architectural portfolio photographs. Use the logo only for brand identity and omit the two dated promo graphics from page imagery.
+The logo and dated promotional graphics are not architectural portfolio photographs. Use the logo only for brand identity and omit the two dated promo graphics from page imagery. `render-two-storey-home-landscaped-front.jpg` is byte-identical to `masonry-building-scaffolding-alt.jpg`, despite its filename; treat both as construction-site imagery and emit only one optimized copy.
 
 ## Asset handling and performance
 
