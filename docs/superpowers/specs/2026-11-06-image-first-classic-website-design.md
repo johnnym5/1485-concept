@@ -30,7 +30,7 @@ Redesign the landing page as the entry point to a conventional, image-led archit
 
 - `/`: residential render for the hero; selected home renders and construction photographs in the practice, service, and imagery sections.
 - `/services`: construction progress and foundation photographs alongside relevant service groups; residential renders for design/development services.
-- `/about`: neighborhood aerial or a representative completed-looking residential render, clearly presented as illustrative company imagery rather than a confirmed project claim.
+- `/about`: `render-residential-homes-driveway.jpg`, clearly presented as illustrative residential imagery rather than a confirmed project claim.
 - `/projects`: image-led grid using the supplied renders and construction photographs. Until case-study details are approved, label this as selected imagery / design and construction work; do not imply every render is a completed commission.
 - `/contact`: one supporting construction or residential image, placed so it does not compete with or reduce the space available to the form.
 - `/privacy`, `/cookies`, `/terms`, `/subprocessors`: retain text-first legal layouts. If a shared image header is used, keep it small, decorative, and outside the legal reading column; skip it if it harms legibility or adds no value.

@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 
 export default function SubprocessorsPage() {
   return (
-    <LegalPage motion="subprocessors" eyebrow="Service providers" title="Who helps deliver this site." intro="This page will identify service providers that process personal information for the website. Production provider names and processing locations have not yet been confirmed, so the inventory below is explicitly pending verification.">
+    <LegalPage eyebrow="Service providers" title="Who helps deliver this site." intro="This page will identify service providers that process personal information for the website. Production provider names and processing locations have not yet been confirmed, so the inventory below is explicitly pending verification.">
       <LegalSection title="Current inventory">
         <p><strong className="text-[#F4F4F0]">Website hosting and content delivery:</strong> pending confirmation of the production host and CDN.</p>
         <p><strong className="text-[#F4F4F0]">Inquiry and privacy-request email:</strong> SMTP provider pending confirmation. The application sends inquiry details to the configured recipient and may use a separately configured privacy recipient.</p>

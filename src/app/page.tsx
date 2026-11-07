@@ -1,4 +1,3 @@
-import LoadingBuffer from '@/components/canvas/LoadingBuffer';
 import HomeSections from '@/components/site/HomeSections';
 import { canonicalUrl } from '@/lib/site';
 import type { Metadata } from 'next';
@@ -12,9 +11,7 @@ export const metadata: Metadata = {
 export default function Home() {
   return (
     <main className="min-h-screen bg-[#080808]">
-      <LoadingBuffer>
-        <HomeSections />
-      </LoadingBuffer>
+      <HomeSections />
     </main>
   );
 }

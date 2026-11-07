@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 
 export default function PrivacyPage() {
   return (
-    <LegalPage motion="privacy" eyebrow="Privacy notice" title="Privacy, handled with care." intro="This notice explains what information this website receives when you submit a project inquiry, why it is used, and the choices available to you. It describes the current inquiry form and should be read alongside any notices provided by the service providers involved in delivering your message.">
+    <LegalPage eyebrow="Privacy notice" title="Privacy, handled with care." intro="This notice explains what information this website receives when you submit a project inquiry, why it is used, and the choices available to you. It describes the current inquiry form and should be read alongside any notices provided by the service providers involved in delivering your message.">
       <LegalSection title="Information you provide">
         <p>The project inquiry form asks for your name, email address, project type, project location, estimated budget range, and a description of your project scope. Please avoid including sensitive personal information or information that you are not authorised to share.</p>
       </LegalSection>

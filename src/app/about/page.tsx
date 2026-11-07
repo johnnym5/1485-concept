@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ContentLayout, PageEyebrow, PageTitle } from '@/components/site/SiteChrome';
+import SiteImage from '@/components/site/SiteImage';
 import { canonicalUrl } from '@/lib/site';
 
 export const metadata: Metadata = {
@@ -11,32 +12,42 @@ export const metadata: Metadata = {
 
 export default function AboutPage() {
   return (
-    <ContentLayout motion="about">
+    <ContentLayout>
       <section className="mx-auto max-w-7xl px-5 pb-24 pt-16 sm:px-8 sm:pb-32 sm:pt-24">
-        <div data-motion-reveal><PageEyebrow>14.85 / About</PageEyebrow></div>
-        <div data-motion-reveal><PageTitle>Building ideas. Creating spaces. Shaping the future.</PageTitle></div>
+        <div><PageEyebrow>14.85 / About</PageEyebrow></div>
+        <div><PageTitle>Building ideas. Creating spaces. Shaping the future.</PageTitle></div>
         <div className="mt-12 grid gap-10 border-t border-white/15 pt-8 sm:mt-16 sm:pt-12 md:grid-cols-[0.7fr_1.3fr] md:gap-24">
-          <p data-motion-reveal className="technical-label text-[10px] text-[#C5A059]">Abuja, Nigeria · International enquiries</p>
-          <div data-motion-reveal data-motion-delay="0.08" className="max-w-3xl space-y-6 text-sm leading-8 text-white/70 sm:text-base sm:leading-9">
+          <p className="technical-label text-[10px] text-[#C5A059]">Abuja, Nigeria · International enquiries</p>
+          <div className="max-w-3xl space-y-6 text-sm leading-8 text-white/70 sm:text-base sm:leading-9">
             <p>14.85 Concepts is an Abuja-based architecture, construction and built-environment company. We bring design thinking, technical coordination and construction expertise together to shape spaces that are functional, considered and made to endure.</p>
             <p>From architectural design and interiors to construction, renovation, project management and property development, we begin by understanding the brief, the site, the budget and what the project needs to achieve. That understanding guides decisions from early planning through delivery.</p>
             <p>We work with residential and commercial clients in Nigeria and welcome enquiries from clients based internationally. Each engagement is shaped around its scope, context and requirements.</p>
           </div>
         </div>
+        <figure className="mt-12 sm:mt-16">
+          <SiteImage
+            image="aboutResidence"
+            alt="Illustrative render of homes arranged around a landscaped shared drive"
+            sizes="(min-width: 1280px) 1280px, 100vw"
+            className="site-image-hover aspect-[16/8] sm:aspect-[16/7]"
+            objectPosition="center 56%"
+          />
+          <figcaption className="technical-label mt-3 text-[9px] text-white/50">Illustrative residential imagery · not a named project</figcaption>
+        </figure>
         <div className="mt-20 grid gap-10 border-t border-white/15 pt-8 sm:mt-28 sm:grid-cols-2 sm:pt-10 sm:gap-16">
-          <article data-motion-reveal>
+          <article>
             <p className="technical-label mb-4 text-[10px] text-[#C5A059]">Our vision</p>
             <h2 className="font-editorial text-3xl leading-tight text-[#F4F4F0]">A built environment shaped by design, technical care and lasting quality.</h2>
             <p className="mt-4 max-w-xl text-sm leading-7 text-white/60">We aim to contribute to Nigeria’s built environment and grow our work across international markets through thoughtful design and dependable project delivery.</p>
           </article>
-          <article data-motion-reveal data-motion-delay="0.08">
+          <article>
             <p className="technical-label mb-4 text-[10px] text-[#C5A059]">Our mission</p>
             <h2 className="font-editorial text-3xl leading-tight text-[#F4F4F0]">Turn client aspirations into functional, compelling and enduring spaces.</h2>
             <p className="mt-4 max-w-xl text-sm leading-7 text-white/60">We do this through considered planning, technical coordination, responsible construction practices and a client-centred process.</p>
           </article>
         </div>
         <div className="mt-20 border-t border-white/15 pt-8 sm:mt-28 sm:pt-10">
-          <div data-motion-reveal className="mb-8 max-w-2xl">
+          <div className="mb-8 max-w-2xl">
             <p className="technical-label mb-4 text-[10px] text-[#C5A059]">What guides the work</p>
             <h2 className="font-editorial text-4xl text-[#F4F4F0]">Principles we bring to each brief.</h2>
           </div>
@@ -48,8 +59,8 @@ export default function AboutPage() {
               ['Innovation', 'Use thoughtful design and practical methods to respond to changing needs.'],
               ['Client-centred service', 'Listen carefully, communicate clearly and shape solutions around each brief.'],
               ['Sustainability and responsibility', 'Consider resource use, environmental conditions and long-term performance where the project allows.'],
-            ].map(([title, text], index) => (
-              <article key={title} data-motion-reveal data-motion-delay={String(index * 0.04)} className="border-t border-white/15 pt-5">
+            ].map(([title, text]) => (
+              <article key={title} className="border-t border-white/15 pt-5">
                 <h3 className="font-editorial text-2xl text-[#F4F4F0]">{title}</h3>
                 <p className="mt-3 text-sm leading-7 text-white/60">{text}</p>
               </article>
@@ -57,7 +68,7 @@ export default function AboutPage() {
           </div>
         </div>
         <div className="mt-20 border-t border-white/15 pt-8 sm:mt-28 sm:pt-10">
-          <div data-motion-reveal className="mb-8 max-w-2xl">
+          <div className="mb-8 max-w-2xl">
             <p className="technical-label mb-4 text-[10px] text-[#C5A059]">From vision to delivery</p>
             <h2 className="font-editorial text-4xl text-[#F4F4F0]">A clear path through the work.</h2>
           </div>
@@ -71,7 +82,7 @@ export default function AboutPage() {
               ['06', 'Quality review', 'Monitor progress against agreed requirements and milestones.'],
               ['07', 'Completion', 'Review the agreed deliverables and coordinate handover.'],
             ].map(([number, title, text]) => (
-              <article key={number} data-motion-reveal className="bg-[#080808] p-5 sm:p-6">
+              <article key={number} className="bg-[#080808] p-5 sm:p-6">
                 <p className="technical-label text-[10px] text-[#C5A059]">{number}</p>
                 <h3 className="mt-5 font-editorial text-2xl text-[#F4F4F0]">{title}</h3>
                 <p className="mt-3 text-sm leading-7 text-white/60">{text}</p>
@@ -79,7 +90,7 @@ export default function AboutPage() {
             ))}
           </div>
         </div>
-        <Link data-motion-reveal href="/contact" className="quiet-interaction mt-16 inline-flex min-h-12 items-center border border-[#C5A059]/70 px-5 text-[10px] uppercase tracking-[0.18em] text-[#F4F4F0] hover:bg-[#C5A059] hover:text-[#080808]">Start a conversation</Link>
+        <Link href="/contact" className="quiet-interaction mt-16 inline-flex min-h-12 items-center border border-[#C5A059]/70 px-5 text-[10px] uppercase tracking-[0.18em] text-[#F4F4F0] hover:bg-[#C5A059] hover:text-[#080808]">Start a conversation</Link>
       </section>
     </ContentLayout>
   );

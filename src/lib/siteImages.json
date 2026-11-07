@@ -1,0 +1,106 @@
+{
+  "assets": {
+    "heroHome": {
+      "source": "render-aerial-residential-home.jpg",
+      "smallSrc": "/site-images/heroHome-720.webp",
+      "largeSrc": "/site-images/heroHome-1440.webp",
+      "width": 1254,
+      "height": 1254,
+      "smallWidth": 720,
+      "largeWidth": 1254,
+      "alt": "Aerial view of a contemporary residence within its landscaped setting"
+    },
+    "practiceConstruction": {
+      "source": "construction-home-on-sloped-site.jpg",
+      "smallSrc": "/site-images/practiceConstruction-720.webp",
+      "largeSrc": "/site-images/practiceConstruction-1440.webp",
+      "width": 960,
+      "height": 1280,
+      "smallWidth": 720,
+      "largeWidth": 960,
+      "alt": "Active residential construction on a sloped site"
+    },
+    "serviceFoundations": {
+      "source": "ground-slab-reinforcement.jpg",
+      "smallSrc": "/site-images/serviceFoundations-720.webp",
+      "largeSrc": "/site-images/serviceFoundations-1440.webp",
+      "width": 960,
+      "height": 1280,
+      "smallWidth": 720,
+      "largeWidth": 960,
+      "alt": "Steel reinforcement arranged for a building ground slab"
+    },
+    "serviceStructure": {
+      "source": "multi-storey-building-scaffolding.jpg",
+      "smallSrc": "/site-images/serviceStructure-720.webp",
+      "largeSrc": "/site-images/serviceStructure-1440.webp",
+      "width": 1000,
+      "height": 750,
+      "smallWidth": 720,
+      "largeWidth": 1000,
+      "alt": "Multi-storey building under construction with external scaffolding"
+    },
+    "aboutResidence": {
+      "source": "render-residential-homes-driveway.jpg",
+      "smallSrc": "/site-images/aboutResidence-720.webp",
+      "largeSrc": "/site-images/aboutResidence-1440.webp",
+      "width": 1050,
+      "height": 1050,
+      "smallWidth": 720,
+      "largeWidth": 1050,
+      "alt": "Residential home renders arranged around a landscaped shared drive"
+    },
+    "projectCourtyard": {
+      "source": "render-aerial-villa-courtyard-pool.jpg",
+      "smallSrc": "/site-images/projectCourtyard-720.webp",
+      "largeSrc": "/site-images/projectCourtyard-1440.webp",
+      "width": 1000,
+      "height": 1150,
+      "smallWidth": 720,
+      "largeWidth": 1000,
+      "alt": "Aerial render of a villa courtyard and pool"
+    },
+    "projectGardenHome": {
+      "source": "render-modern-home-garden-pool.jpg",
+      "smallSrc": "/site-images/projectGardenHome-720.webp",
+      "largeSrc": "/site-images/projectGardenHome-1440.webp",
+      "width": 1065,
+      "height": 1280,
+      "smallWidth": 720,
+      "largeWidth": 1065,
+      "alt": "Render of a contemporary home opening onto a garden and pool"
+    },
+    "projectEveningVilla": {
+      "source": "render-two-storey-villa-evening-pool.jpg",
+      "smallSrc": "/site-images/projectEveningVilla-720.webp",
+      "largeSrc": "/site-images/projectEveningVilla-1440.webp",
+      "width": 960,
+      "height": 1104,
+      "smallWidth": 720,
+      "largeWidth": 960,
+      "alt": "Evening render of a two-storey villa beside a pool"
+    },
+    "projectConstruction": {
+      "source": "multi-storey-building-scaffold-detail.jpg",
+      "smallSrc": "/site-images/projectConstruction-720.webp",
+      "largeSrc": "/site-images/projectConstruction-1440.webp",
+      "width": 1280,
+      "height": 960,
+      "smallWidth": 720,
+      "largeWidth": 1280,
+      "alt": "Masonry structure and scaffold detail on a multi-storey building"
+    }
+  },
+  "ui": {
+    "heroHome": "heroHome",
+    "practiceConstruction": "practiceConstruction",
+    "serviceFoundations": "serviceFoundations",
+    "serviceStructure": "serviceStructure",
+    "aboutResidence": "aboutResidence",
+    "projectCourtyard": "projectCourtyard",
+    "projectGardenHome": "projectGardenHome",
+    "projectEveningVilla": "projectEveningVilla",
+    "projectConstruction": "projectConstruction",
+    "contactConstruction": "practiceConstruction"
+  }
+}

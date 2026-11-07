@@ -16,6 +16,7 @@ export default function MobileMenu() {
   const pathname = usePathname();
   const menuRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLElement>(null);
+  const toggleRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => setOpen(false), [pathname]);
 
@@ -35,7 +36,10 @@ export default function MobileMenu() {
       if (event.target instanceof Node && !menuRef.current?.contains(event.target)) setOpen(false);
     };
     const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpen(false);
+      if (event.key === 'Escape') {
+        setOpen(false);
+        toggleRef.current?.focus();
+      }
     };
     document.addEventListener('pointerdown', closeOnOutsidePress);
     document.addEventListener('keydown', closeOnEscape);
@@ -51,14 +55,15 @@ export default function MobileMenu() {
   }, [open]);
 
   return (
-    <div ref={menuRef} className="relative md:hidden">
+    <div ref={menuRef} className="relative lg:hidden">
       <button
+        ref={toggleRef}
         type="button"
         aria-label={open ? 'Close navigation menu' : 'Open navigation menu'}
         aria-expanded={open}
         aria-controls="mobile-site-navigation"
         onClick={() => setOpen((value) => !value)}
-        className="mobile-menu-toggle quiet-interaction relative z-[100] flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/25 bg-black/15 text-[#F4F4F0] shadow-[0_4px_18px_rgba(0,0,0,0.22)] backdrop-blur-md hover:border-[#C5A059]/70 sm:h-12 sm:w-12"
+        className="mobile-menu-toggle relative z-[100] flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-white/25 bg-[#080808] text-[#F4F4F0] hover:border-[#C5A059]/70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#C5A059]"
       >
         <span className="mobile-menu-line mobile-menu-line--top" />
         <span className="mobile-menu-line mobile-menu-line--middle" />
@@ -69,20 +74,24 @@ export default function MobileMenu() {
         id="mobile-site-navigation"
         aria-label="Site navigation"
         aria-hidden={!open}
+        inert={!open}
         className={`mobile-menu-panel fixed inset-0 z-[80] h-[100dvh] w-screen ${open ? 'mobile-menu-panel--open' : ''}`}
       >
         <div className="mobile-menu-links">
-          {links.map((link) => (
+          <p className="technical-label mb-5 text-[10px] text-[#C5A059]">Explore 14.85 Concepts</p>
+          {links.map((link, index) => (
             <Link
               key={link.href}
               href={link.href}
               aria-current={pathname === link.href ? 'page' : undefined}
               tabIndex={open ? 0 : -1}
-              className="quiet-interaction flex h-11 items-center justify-end rounded-xl px-4 text-right text-xs uppercase tracking-[0.16em] text-white/75 hover:text-[#F4F4F0]"
+              className="quiet-interaction flex min-h-14 items-center gap-5 border-b border-white/15 py-3 text-left text-[#F4F4F0] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#C5A059]"
             >
-              {link.label}
+              <span aria-hidden="true" className="text-[10px] tracking-[0.16em] text-[#C5A059]">0{index + 1}</span>
+              <span className="font-editorial text-2xl sm:text-3xl">{link.label}</span>
             </Link>
           ))}
+          <Link href="/contact" tabIndex={open ? 0 : -1} className="mt-8 inline-flex min-h-12 items-center border border-[#C5A059]/70 px-5 text-[10px] uppercase tracking-[0.16em] text-[#F4F4F0]">Discuss your project <span aria-hidden="true" className="ml-3">↗</span></Link>
         </div>
       </nav>
     </div>

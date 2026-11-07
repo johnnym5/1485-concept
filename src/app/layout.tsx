@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
-import { SiteMotion } from '@/components/site/SiteMotion';
 import { SiteHeader } from '@/components/site/SiteChrome';
 import { CookieConsent } from '@/components/site/CookieConsent';
+import SiteMotionProvider from '@/components/site/SiteMotionProvider';
 import { siteOrigin } from '@/lib/site';
 import './globals.css';
 
@@ -47,9 +47,14 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en" suppressHydrationWarning>
       <body suppressHydrationWarning>
-        <SiteHeader />
-        <SiteMotion>{children}</SiteMotion>
-        <CookieConsent />
+        <noscript>
+          <style>{`.site-motion-content[data-intro-active="true"] .home-hero .hero-copy,.site-motion-content[data-intro-active="true"] .home-hero .hero-meta{visibility:visible!important}.site-motion-content[data-intro-active="true"] .home-hero [data-hero-shade],.site-motion-content[data-intro-active="true"] .home-hero [data-hero-gradient]{opacity:1!important}.site-motion-content [data-hero-blackout],.site-motion-overlay{display:none!important}`}</style>
+        </noscript>
+        <SiteMotionProvider>
+          <SiteHeader />
+          {children}
+          <CookieConsent />
+        </SiteMotionProvider>
       </body>
     </html>
   );

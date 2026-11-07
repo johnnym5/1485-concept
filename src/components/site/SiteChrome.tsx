@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { PageMotion } from './SiteMotion';
 import MobileMenu from './MobileMenu';
 
 const navigation = [
@@ -11,22 +10,21 @@ const navigation = [
 
 export function SiteHeader() {
   return (
-    <header className="frosted-site-header fixed inset-x-3 top-3 z-[90] mx-auto box-border flex w-auto max-w-[calc(100vw-1.5rem)] items-center justify-between gap-3 rounded-2xl border border-white/10 px-3 py-2.5 sm:inset-x-8 sm:top-7 sm:max-w-[calc(100vw-4rem)] sm:px-5 sm:py-3">
-      <Link href="/" aria-label="14.85 Concept Limited home" className="relative z-[100] flex shrink-0 items-center gap-2 sm:gap-3">
-        <img src="/brand/1485-emblem.webp" alt="" className="h-8 w-8 object-contain sm:h-12 sm:w-12" />
-          <span className="font-sans text-[9px] uppercase leading-relaxed tracking-[0.14em] text-[#F4F4F0] sm:text-[11px] sm:tracking-[0.22em]">
-          <span className="sm:hidden">14.85 Concepts</span>
-          <span className="hidden sm:inline">14.85 Concepts</span>
-          <span className="hidden text-[8px] tracking-[0.16em] text-[#F4F4F0]/60 sm:block sm:text-[9px]">Architecture · Construction · Development</span>
+    <header className="frosted-site-header top-0 z-[90] mx-auto flex w-full items-center justify-between gap-2 border-b px-4 py-3 sm:px-6 lg:px-8 lg:py-4">
+      <Link href="/" aria-label="14.85 Concept Limited home" className="relative z-[100] flex min-w-0 shrink items-center gap-2.5 sm:gap-3">
+        <img src="/brand/1485-emblem.webp" alt="" className="h-9 w-9 shrink-0 object-contain sm:h-11 sm:w-11 lg:h-12 lg:w-12" />
+          <span className="min-w-0 font-sans text-[9px] uppercase leading-relaxed tracking-[0.12em] text-[#F4F4F0] sm:text-[11px] sm:tracking-[0.18em]">
+          14.85 Concepts
+          <span className="hidden text-[8px] tracking-[0.14em] text-[#F4F4F0]/60 lg:block lg:text-[9px]">Architecture · Construction · Development</span>
         </span>
       </Link>
-      <div className="flex min-w-0 items-center gap-2 sm:gap-5">
-        <nav aria-label="Main navigation" className="hidden shrink-0 items-center gap-2 md:flex md:gap-4 lg:gap-5">
+      <div className="flex shrink-0 items-center gap-2 sm:gap-5">
+        <nav aria-label="Main navigation" className="hidden shrink-0 items-center gap-4 lg:flex lg:gap-6">
           {navigation.map((item) => (
             <Link
               key={item.href}
               href={item.href}
-              className="quiet-interaction whitespace-nowrap rounded-sm py-2 font-sans text-[8px] uppercase tracking-[0.08em] text-white/75 hover:text-[#C5A059] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#C5A059] sm:text-[10px] sm:tracking-[0.16em]"
+              className="quiet-interaction whitespace-nowrap rounded-sm py-3 font-sans text-[10px] uppercase tracking-[0.12em] text-white/75 hover:text-[#C5A059] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#C5A059] lg:text-[11px] lg:tracking-[0.16em]"
             >
               {item.label}
             </Link>
@@ -83,10 +81,10 @@ function FooterColumn({ title, links }: { title: string; links: Array<[string, s
   );
 }
 
-export function ContentLayout({ children, motion = 'page' }: { children: React.ReactNode; motion?: string }) {
+export function ContentLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-[#080808] text-[#F4F4F0]">
-      <main><PageMotion page={motion}>{children}</PageMotion></main>
+      <main>{children}</main>
       <SiteFooter />
     </div>
   );

@@ -19,19 +19,18 @@ function SubmitButton() {
   );
 }
 
-export default function RfqForm({ animated = false }: { animated?: boolean }) {
+export default function RfqForm() {
   const [state, formAction] = useActionState(submitRfq, initialState);
-  const reveal = animated ? { 'data-rfq-reveal': true } : {};
 
   return (
     <form action={formAction} className="space-y-1.5 sm:space-y-5">
       <div className="absolute -left-[10000px] top-auto h-px w-px overflow-hidden" aria-hidden="true">
-        <label htmlFor={animated ? 'companyWebsite-journey' : 'companyWebsite-contact'}>Company website</label>
-        <input id={animated ? 'companyWebsite-journey' : 'companyWebsite-contact'} name="companyWebsite" type="text" tabIndex={-1} autoComplete="off" />
+        <label htmlFor="companyWebsite-contact">Company website</label>
+        <input id="companyWebsite-contact" name="companyWebsite" type="text" tabIndex={-1} autoComplete="off" />
       </div>
 
       <div className="rfq-field-pair">
-        <label {...reveal} className="block text-[10px] leading-4 tracking-wide text-[#F4F4F0]/85 sm:text-sm sm:leading-normal">
+        <label className="block text-[10px] leading-4 tracking-wide text-[#F4F4F0]/85 sm:text-sm sm:leading-normal">
           Name
           <input
             name="name"
@@ -45,7 +44,7 @@ export default function RfqForm({ animated = false }: { animated?: boolean }) {
           />
         </label>
 
-        <label {...reveal} className="block text-[10px] leading-4 tracking-wide text-[#F4F4F0]/85 sm:text-sm sm:leading-normal">
+        <label  className="block text-[10px] leading-4 tracking-wide text-[#F4F4F0]/85 sm:text-sm sm:leading-normal">
           Email
           <input
             name="email"
@@ -60,7 +59,7 @@ export default function RfqForm({ animated = false }: { animated?: boolean }) {
       </div>
 
       <div className="rfq-field-pair">
-        <label {...reveal} className="block text-[10px] leading-4 tracking-wide text-[#F4F4F0]/85 sm:text-sm sm:leading-normal">
+        <label  className="block text-[10px] leading-4 tracking-wide text-[#F4F4F0]/85 sm:text-sm sm:leading-normal">
           Project type
           <select
             name="projectType"
@@ -77,7 +76,7 @@ export default function RfqForm({ animated = false }: { animated?: boolean }) {
           </select>
         </label>
 
-        <label {...reveal} className="block text-[10px] leading-4 tracking-wide text-[#F4F4F0]/85 sm:text-sm sm:leading-normal">
+        <label  className="block text-[10px] leading-4 tracking-wide text-[#F4F4F0]/85 sm:text-sm sm:leading-normal">
           Project location
           <input
             name="location"
@@ -92,7 +91,7 @@ export default function RfqForm({ animated = false }: { animated?: boolean }) {
         </label>
       </div>
 
-      <label {...reveal} className="block text-[10px] leading-4 tracking-wide text-[#F4F4F0]/85 sm:text-sm sm:leading-normal">
+      <label  className="block text-[10px] leading-4 tracking-wide text-[#F4F4F0]/85 sm:text-sm sm:leading-normal">
         Project scope
         <textarea
           name="scope"
@@ -105,7 +104,7 @@ export default function RfqForm({ animated = false }: { animated?: boolean }) {
         />
       </label>
 
-      <label {...reveal} className="block text-[10px] leading-4 tracking-wide text-[#F4F4F0]/85 sm:text-sm sm:leading-normal">
+      <label  className="block text-[10px] leading-4 tracking-wide text-[#F4F4F0]/85 sm:text-sm sm:leading-normal">
         Estimated budget
         <select
           name="budget"
@@ -122,12 +121,12 @@ export default function RfqForm({ animated = false }: { animated?: boolean }) {
         </select>
       </label>
 
-      <label {...reveal} className="flex items-start gap-2.5 py-1 text-[10px] leading-5 text-[#F4F4F0]/75 sm:text-xs">
+      <label  className="flex items-start gap-2.5 py-1 text-[10px] leading-5 text-[#F4F4F0]/75 sm:text-xs">
         <input name="acceptTerms" type="checkbox" value="yes" required className="mt-1 accent-[#C5A059]" />
         <span>I have read and accept the <a href="/terms" target="_blank" rel="noreferrer" className="text-[#C5A059] underline underline-offset-4">Website Terms</a>. Please see the <a href="/privacy" target="_blank" rel="noreferrer" className="text-[#C5A059] underline underline-offset-4">Privacy Notice</a> for how this inquiry is handled.</span>
       </label>
 
-      <div {...reveal} className="pt-0.5 sm:pt-1"><SubmitButton /></div>
+      <div  className="pt-0.5 sm:pt-1"><SubmitButton /></div>
       <p aria-live="polite" className={`text-[10px] leading-4 sm:text-sm sm:leading-6 ${!state.message && state.status === 'idle' ? 'hidden sm:block' : ''} ${state.status === 'success' ? 'text-[#C5A059]' : 'text-[#F4F4F0]/70'}`}>
         {state.message || 'We aim to respond within two business days.'}
       </p>
