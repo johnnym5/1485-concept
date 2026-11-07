@@ -12,8 +12,8 @@
   "dependencies": {
     "@gsap/react": "^2.1.2",
     "gsap": "^3.15.1",
-    "next": "^15.5.27",
-    "nodemailer": "^10.0.15",
+    "next": "^15.5.28",
+    "nodemailer": "^10.1.4",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "zod": "^3.25.76"
