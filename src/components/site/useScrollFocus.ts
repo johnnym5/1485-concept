@@ -27,7 +27,9 @@ export default function useScrollFocus({ enabled }: UseScrollFocusOptions) {
 
     for (const element of targets) {
       const isImage = imageTargets.includes(element);
-      const edgeOpacity = isImage ? 0.7 : 0.76;
+      // Keep surrounding content readable, but make the scroll reveal distinct
+      // from the page-opening animation instead of barely changing opacity.
+      const edgeOpacity = isImage ? 0.42 : 0.5;
       const focus = gsap.timeline({
         scrollTrigger: {
           trigger: element,
