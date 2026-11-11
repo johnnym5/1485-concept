@@ -29,13 +29,15 @@ export default function useScrollFocus({ enabled }: UseScrollFocusOptions) {
       const isImage = imageTargets.includes(element);
       // Keep surrounding content readable, but make the scroll reveal distinct
       // from the page-opening animation instead of barely changing opacity.
-      const edgeOpacity = isImage ? 0.42 : 0.5;
+      const edgeOpacity = isImage ? 0.48 : 0.55;
+      const edgeBlur = isImage ? 'blur(1.25px)' : 'blur(0.75px)';
+      const edgeY = isImage ? 4 : 3;
       const focus = gsap.timeline({
         scrollTrigger: {
           trigger: element,
-          start: 'top 94%',
-          end: 'bottom 6%',
-          scrub: 0.7,
+          start: 'top bottom',
+          end: 'bottom top',
+          scrub: 1.1,
           invalidateOnRefresh: true,
         },
       });
@@ -43,10 +45,10 @@ export default function useScrollFocus({ enabled }: UseScrollFocusOptions) {
       focus
         .fromTo(
           element,
-          { opacity: edgeOpacity },
-          { opacity: 1, duration: 0.5, ease: 'sine.out', immediateRender: false },
+          { opacity: edgeOpacity, filter: edgeBlur, y: edgeY },
+          { opacity: 1, filter: 'blur(0px)', y: 0, duration: 0.5, ease: 'sine.out', immediateRender: false },
         )
-        .to(element, { opacity: edgeOpacity, duration: 0.5, ease: 'sine.in' });
+        .to(element, { opacity: edgeOpacity, filter: edgeBlur, y: edgeY, duration: 0.5, ease: 'sine.in' });
     }
 
     ScrollTrigger.refresh();
