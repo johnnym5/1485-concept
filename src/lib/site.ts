@@ -1,11 +1,9 @@
 const configuredOrigin = process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/+$/, '');
-const developmentOrigin = process.env.NODE_ENV !== 'production' ? 'http://localhost:3001' : undefined;
+const defaultOrigin = process.env.NODE_ENV === 'production'
+  ? 'https://1485concepts.com'
+  : 'http://localhost:3001';
 
-export const siteOrigin = configuredOrigin
-  ? new URL(configuredOrigin)
-  : developmentOrigin
-    ? new URL(developmentOrigin)
-    : undefined;
+export const siteOrigin = new URL(configuredOrigin || defaultOrigin);
 
 export function canonicalUrl(path: string) {
   return siteOrigin ? new URL(path, siteOrigin) : undefined;
